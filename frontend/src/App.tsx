@@ -17,13 +17,17 @@ export default function App() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    getCurrentProfile().then(setProfile);
-
+    // Use onAuthStateChange exclusively — INITIAL_SESSION fires immediately for
+    // existing sessions, removing the duplicate getCurrentProfile() race condition.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event) => {
-        if (event === 'SIGNED_IN') {
-          const p = await getCurrentProfile();
-          setProfile(p);
+      async (event, session) => {
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+          if (session) {
+            const p = await getCurrentProfile();
+            setProfile(p ?? null);
+          } else {
+            setProfile(null);
+          }
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           navigate('/login');
