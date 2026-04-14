@@ -3,7 +3,8 @@ import type { UserRole } from '../../lib/supabase';
 
 const NAV_ITEMS: { label: string; path: string; roles: UserRole[] }[] = [
   { label: 'Dashboard', path: '/dashboard', roles: ['finance', 'admin', 'auditor'] },
-  { label: 'Export', path: '/export', roles: ['finance', 'admin'] },
+  { label: 'Export',    path: '/export',    roles: ['finance', 'admin'] },
+  { label: 'Admin',     path: '/admin',     roles: ['admin'] },
 ];
 
 export default function Sidebar({ role }: { role: UserRole }) {

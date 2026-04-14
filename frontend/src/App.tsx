@@ -10,6 +10,7 @@ import InvoiceReview from './pages/InvoiceReview';
 import ApproverView from './pages/ApproverView';
 import ExportManagement from './pages/ExportManagement';
 import AuditTrailViewer from './pages/AuditTrailViewer';
+import AdminPanel from './pages/AdminPanel';
 
 export default function App() {
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
@@ -78,6 +79,14 @@ export default function App() {
                 <Route path="/invoices/:id" element={<InvoiceReview />} />
                 <Route path="/export" element={<ExportManagement />} />
                 <Route path="/audit/:id" element={<AuditTrailViewer />} />
+                <Route
+                  path="/admin"
+                  element={
+                    profile?.role === 'admin'
+                      ? <AdminPanel />
+                      : <Navigate to="/dashboard" replace />
+                  }
+                />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </AppShell>
