@@ -53,27 +53,31 @@ export default function App() {
     }
 
     function fetchProfile(userId: string) {
+      // Supabase's query builder returns a PromiseLike (not a full Promise),
+      // so .catch() isn't available — use the two-argument .then(onFulfilled, onRejected) form.
       supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
-        .then(({ data, error }) => {
-          if (cancelled) return;
-          if (error || !data) {
-            console.warn('Profile load failed:', error?.message ?? 'no data');
-            // Only clear profile/cache on definitive "not found" — not network errors
-            applyProfile(null);
-          } else {
-            applyProfile(data as Profile);
-          }
-        })
-        .catch((err) => {
-          // Network error: keep the cached profile rather than logging the user out.
-          // The app will work with cached data; queries will fail gracefully.
-          console.warn('Profile fetch network error — keeping cached state:', err);
-          if (!cancelled) setProfile((prev) => (prev === undefined ? null : prev));
-        });
+        .then(
+          ({ data, error }) => {
+            if (cancelled) return;
+            if (error || !data) {
+              console.warn('Profile load failed:', error?.message ?? 'no data');
+              // Only clear profile/cache on definitive "not found" — not network errors
+              applyProfile(null);
+            } else {
+              applyProfile(data as Profile);
+            }
+          },
+          (err: unknown) => {
+            // Network error: keep the cached profile rather than logging the user out.
+            // The app will work with cached data; queries will fail gracefully.
+            console.warn('Profile fetch network error — keeping cached state:', err);
+            if (!cancelled) setProfile((prev) => (prev === undefined ? null : prev));
+          },
+        );
     }
 
     // Use getSession() for the page-refresh path instead of relying on
@@ -184,24 +188,33 @@ export default function App() {
 function AuthCallback({ onProfile }: { onProfile: (p: Profile | null) => void }) {
   const navigate = useNavigate();
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            const p = (data as Profile) ?? null;
-            setCachedProfile(p);
-            onProfile(p);
-          })
-          .catch(() => onProfile(null))
-          .finally(() => navigate('/dashboard', { replace: true }));
-      } else {
-        navigate('/login', { replace: true });
-      }
-    }).catch(() => navigate('/login', { replace: true }));
+    supabase.auth.getSession().then(
+      ({ data: { session } }) => {
+        if (session?.user) {
+          // PostgREST query builder returns PromiseLike — use two-arg .then form.
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+            .then(
+              ({ data }) => {
+                const p = (data as Profile) ?? null;
+                setCachedProfile(p);
+                onProfile(p);
+                navigate('/dashboard', { replace: true });
+              },
+              () => {
+                onProfile(null);
+                navigate('/dashboard', { replace: true });
+              },
+            );
+        } else {
+          navigate('/login', { replace: true });
+        }
+      },
+      () => navigate('/login', { replace: true }),
+    );
   }, [navigate, onProfile]);
   return <div style={styles.center}><div style={styles.spinner} /></div>;
 }
