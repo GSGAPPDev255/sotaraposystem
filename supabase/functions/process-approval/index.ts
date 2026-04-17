@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     // Fetch PO
     const { data: po, error: poError } = await supabaseAdmin
       .from('purchase_orders')
-      .select('*, approver:assigned_approver_id(email, display_name)')
+      .select('*, approver:approvers!assigned_approver_id(email, display_name)')
       .eq('id', purchase_order_id)
       .single();
 

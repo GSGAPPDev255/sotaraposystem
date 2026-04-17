@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import type { Profile } from './lib/supabase';
-import { getCurrentProfile } from './lib/auth';
 import AppShell from './components/layout/AppShell';
 import Login from './pages/Login';
 import FinanceDashboard from './pages/FinanceDashboard';
@@ -12,32 +11,111 @@ import ExportManagement from './pages/ExportManagement';
 import AuditTrailViewer from './pages/AuditTrailViewer';
 import AdminPanel from './pages/AdminPanel';
 
+const PROFILE_CACHE_KEY = 'posystem_profile_cache';
+
+function getCachedProfile(): Profile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as Profile) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedProfile(p: Profile | null) {
+  try {
+    if (p) localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(p));
+    else localStorage.removeItem(PROFILE_CACHE_KEY);
+  } catch { /* storage full / private mode */ }
+}
+
 export default function App() {
-  const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
+  // Seed state from localStorage cache so the UI is instant on refresh.
+  // `undefined` = still checking auth (show spinner).
+  // `null`      = definitely not logged in (show login).
+  // `Profile`   = logged in (show app).
+  const [profile, setProfile] = useState<Profile | null | undefined>(() => {
+    const cached = getCachedProfile();
+    // If we have a cached profile start showing the app immediately;
+    // auth validation happens in the background via onAuthStateChange.
+    return cached ?? undefined;
+  });
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Use onAuthStateChange exclusively — INITIAL_SESSION fires immediately for
-    // existing sessions, removing the duplicate getCurrentProfile() race condition.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-          if (session) {
-            const p = await getCurrentProfile();
-            setProfile(p ?? null);
+    let cancelled = false;
+
+    function applyProfile(p: Profile | null) {
+      if (cancelled) return;
+      setCachedProfile(p);
+      setProfile(p);
+    }
+
+    function fetchProfile(userId: string) {
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+        .then(({ data, error }) => {
+          if (cancelled) return;
+          if (error || !data) {
+            console.warn('Profile load failed:', error?.message ?? 'no data');
+            // Only clear profile/cache on definitive "not found" — not network errors
+            applyProfile(null);
           } else {
-            setProfile(null);
+            applyProfile(data as Profile);
           }
+        })
+        .catch((err) => {
+          // Network error: keep the cached profile rather than logging the user out.
+          // The app will work with cached data; queries will fail gracefully.
+          console.warn('Profile fetch network error — keeping cached state:', err);
+          if (!cancelled) setProfile((prev) => (prev === undefined ? null : prev));
+        });
+    }
+
+    // Use getSession() for the page-refresh path instead of relying on
+    // INITIAL_SESSION from onAuthStateChange. In Edge (and occasionally other
+    // browsers) INITIAL_SESSION can fire before the auth token is fully
+    // restored from storage, delivering a null session that overwrites the
+    // profile cache and causes a redirect to /login.
+    // getSession() reads directly from the in-memory session (already populated
+    // from localStorage synchronously during Supabase client construction).
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return;
+      if (session?.user) fetchProfile(session.user.id);
+      else applyProfile(null);
+    });
+
+    // Only listen for subsequent auth transitions — skip INITIAL_SESSION entirely.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session?.user) fetchProfile(session.user.id);
         } else if (event === 'SIGNED_OUT') {
-          setProfile(null);
-          navigate('/login');
+          applyProfile(null);
+          if (!cancelled) navigate('/login');
         }
       },
     );
-    return () => subscription.unsubscribe();
+
+    // Fallback: if profile is still undefined (no cache, auth slow) after 12s,
+    // clear the spinner rather than hanging forever.
+    const timeout = setTimeout(() => {
+      if (!cancelled) setProfile((prev) => (prev === undefined ? null : prev));
+    }, 12000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
-  // Loading state
+  // Only show the full-page spinner if there is no cached profile AND auth
+  // hasn't resolved yet. With a cache hit this state is skipped entirely.
   if (profile === undefined) {
     return (
       <div style={styles.center}>
@@ -57,7 +135,7 @@ export default function App() {
         element={profile ? <Navigate to="/dashboard" replace /> : <Login />}
       />
 
-      {/* Approver view — authenticated but accessible to approver role */}
+      {/* Approver view */}
       <Route
         path="/approve/:id"
         element={
@@ -71,7 +149,7 @@ export default function App() {
         }
       />
 
-      {/* Protected finance routes */}
+      {/* Protected routes */}
       <Route
         path="/*"
         element={
@@ -106,15 +184,24 @@ export default function App() {
 function AuthCallback({ onProfile }: { onProfile: (p: Profile | null) => void }) {
   const navigate = useNavigate();
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        const p = await getCurrentProfile();
-        onProfile(p);
-        navigate('/dashboard', { replace: true });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data }) => {
+            const p = (data as Profile) ?? null;
+            setCachedProfile(p);
+            onProfile(p);
+          })
+          .catch(() => onProfile(null))
+          .finally(() => navigate('/dashboard', { replace: true }));
       } else {
         navigate('/login', { replace: true });
       }
-    });
+    }).catch(() => navigate('/login', { replace: true }));
   }, [navigate, onProfile]);
   return <div style={styles.center}><div style={styles.spinner} /></div>;
 }

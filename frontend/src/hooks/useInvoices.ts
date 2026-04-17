@@ -10,9 +10,9 @@ export function useInvoices(statusFilter?: InvoiceStatus | InvoiceStatus[]) {
         .from('purchase_orders')
         .select(`
           *,
-          invoice_file:invoice_file_id (id, original_name, storage_path, email_from, email_date),
-          approver:assigned_approver_id (id, email, display_name, department),
-          second_approver:second_approver_id (id, email, display_name)
+          invoice_file:invoice_files!invoice_file_id (id, original_name, storage_path, email_from, email_date),
+          approver:approvers!assigned_approver_id (id, email, display_name, department),
+          second_approver:approvers!second_approver_id (id, email, display_name)
         `)
         .order('created_at', { ascending: false });
 
@@ -39,12 +39,9 @@ export function useInvoice(id: string) {
         .from('purchase_orders')
         .select(`
           *,
-          invoice_file:invoice_file_id (*),
-          approver:assigned_approver_id (*),
-          second_approver:second_approver_id (*),
-          approved_by:approved_by_id (id, email, display_name),
-          created_by:created_by_id (id, email, display_name),
-          updated_by:updated_by_id (id, email, display_name)
+          invoice_file:invoice_files!invoice_file_id (id, original_name, storage_path, email_from, email_date),
+          approver:approvers!assigned_approver_id (id, email, display_name, department),
+          second_approver:approvers!second_approver_id (id, email, display_name)
         `)
         .eq('id', id)
         .single();
@@ -105,6 +102,36 @@ export function useOcrExtraction(poId: string) {
   });
 }
 
+// Explicit whitelist of columns that finance is allowed to update on a PO.
+// Using a whitelist (instead of "strip known joins") bulletproofs against any
+// foreign field leaking into the payload — PostgREST rejects the whole update
+// with "Could not find the 'X' column" if a single unknown key is present.
+const UPDATABLE_PO_COLUMNS = [
+  'status',
+  'account_number', 'supplier_name', 'supplier_ref', 'supplier_ref_code',
+  'transaction_reference', 'second_reference', 'unique_reference_number',
+  'transaction_date', 'posting_date', 'due_date',
+  'description',
+  'net_amount', 'vat_amount', 'gross_amount',
+  'source', 'sys_trader_tran_type', 'query_code', 'sys_trader_generation_reason_type',
+  'document_to_base_currency_rate', 'document_to_account_currency_rate',
+  'assigned_approver_id', 'second_approver_id',
+  'finance_notes', 'finance_user_id',
+  'approved_by_id', 'approved_at', 'rejected_reason',
+  'forwarded_to_id', 'forwarded_reason',
+  'approval_sent_at', 'approver_comments',
+  'exported_at', 'exported_by_id', 'csv_export_id',
+  'updated_by_id',
+] as const;
+
+function pickUpdatable(updates: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of UPDATABLE_PO_COLUMNS) {
+    if (key in updates) out[key] = updates[key];
+  }
+  return out;
+}
+
 export function useUpdateInvoice() {
   const qc = useQueryClient();
   return useMutation({
@@ -116,9 +143,10 @@ export function useUpdateInvoice() {
       updates: Partial<PurchaseOrder>;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
+      const clean = pickUpdatable(updates as Record<string, unknown>);
       const { data, error } = await supabase
         .from('purchase_orders')
-        .update({ ...updates, updated_by_id: user?.id })
+        .update({ ...clean, updated_by_id: user?.id })
         .eq('id', id)
         .select()
         .single();

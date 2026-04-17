@@ -27,8 +27,8 @@ Deno.serve(async (req) => {
       .select(`
         id, supplier_name, transaction_reference, gross_amount,
         approval_sent_at, transaction_date,
-        approver:assigned_approver_id (email, display_name),
-        second_approver:second_approver_id (email, display_name)
+        approver:approvers!assigned_approver_id (email, display_name),
+        second_approver:approvers!second_approver_id (email, display_name)
       `)
       .eq('status', 'pending_approval')
       .lt('approval_sent_at', cutoff.toISOString());

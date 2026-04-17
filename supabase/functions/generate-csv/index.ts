@@ -175,12 +175,12 @@ Deno.serve(async (req) => {
       .from('purchase_orders')
       .select(`
         *,
-        invoice_file:invoice_file_id (email_from, email_date),
-        approver:assigned_approver_id (email, display_name),
-        second_approver:second_approver_id (email, display_name),
-        approved_by:approved_by_id (email, display_name, user_number),
-        created_by:created_by_id (email, display_name),
-        updated_by:updated_by_id (email, display_name)
+        invoice_file:invoice_files!invoice_file_id (email_from, email_date),
+        approver:approvers!assigned_approver_id (email, display_name),
+        second_approver:approvers!second_approver_id (email, display_name),
+        approved_by:profiles!approved_by_id (email, display_name, user_number),
+        created_by:profiles!created_by_id (email, display_name),
+        updated_by:profiles!updated_by_id (email, display_name)
       `)
       .in('id', purchase_order_ids)
       .in('status', ['approved', 'approved_ready_export']);

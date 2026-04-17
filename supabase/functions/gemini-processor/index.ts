@@ -1,6 +1,6 @@
 /**
  * gemini-processor: Downloads an invoice file from Supabase Storage,
- * sends it to Gemini 2.5 Pro for structured extraction, stores the
+ * sends it to Gemini Flash Lite for structured extraction, stores the
  * immutable OCR record, and pre-populates the PO with extracted values.
  *
  * Triggered by: email-intake (async POST) or manual trigger from frontend.
@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
 
     const fileBytes = new Uint8Array(await fileData.arrayBuffer());
 
-    // Call Gemini 2.5 Pro
+    // Call Gemini Flash Lite
     const { fields, rawResponse, processingMs } = await extractInvoiceFields(
       fileBytes,
       mime_type,

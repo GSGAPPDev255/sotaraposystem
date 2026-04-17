@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { useInvoices } from '../hooks/useInvoices';
 import StatusBadge from '../components/shared/StatusBadge';
 import type { InvoiceStatus } from '../lib/supabase';
@@ -14,6 +14,19 @@ const STATUS_FILTERS: { label: string; value: InvoiceStatus | 'all' }[] = [
   { label: 'Ready to Export', value: 'approved_ready_export' },
   { label: 'Exported', value: 'exported' },
 ];
+
+/** Safely format a date string from Supabase (handles microsecond precision & timezone offsets). */
+function fmtDate(raw: string): string {
+  try {
+    // Supabase may return e.g. "2026-04-16T14:15:02.301735+00:00" (6dp seconds).
+    // Truncate to milliseconds so parseISO never sees an out-of-spec value.
+    const normalised = raw.replace(/(\.\d{3})\d+/, '$1');
+    const d = parseISO(normalised);
+    return isValid(d) ? format(d, 'dd/MM/yyyy') : '—';
+  } catch {
+    return '—';
+  }
+}
 
 export default function FinanceDashboard() {
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
@@ -84,9 +97,7 @@ export default function FinanceDashboard() {
                     </td>
                     <td style={styles.td}>{inv.transaction_reference ?? '—'}</td>
                     <td style={styles.td}>
-                      {inv.transaction_date
-                        ? format(new Date(inv.transaction_date), 'dd/MM/yyyy')
-                        : '—'}
+                      {inv.transaction_date ? fmtDate(inv.transaction_date) : '—'}
                     </td>
                     <td style={{ ...styles.td, fontWeight: 600 }}>
                       {inv.gross_amount != null
@@ -99,9 +110,7 @@ export default function FinanceDashboard() {
                     <td style={styles.td}>
                       {approver?.display_name ?? <span style={{ color: '#bbb' }}>Unassigned</span>}
                     </td>
-                    <td style={styles.td}>
-                      {format(new Date(inv.created_at), 'dd/MM/yyyy')}
-                    </td>
+                    <td style={styles.td}>{fmtDate(inv.created_at)}</td>
                     <td style={styles.td} onClick={(e) => e.stopPropagation()}>
                       <button
                         style={styles.actionBtn}

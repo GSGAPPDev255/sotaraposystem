@@ -1,7 +1,7 @@
 /**
  * AdminPanel — four tabs:
- *  1. Users      — view all profiles, change roles, activate/deactivate
- *  2. Approvers  — manage approver list, add manual entries, trigger AD sync
+ *  1. Users      — view all profiles, invite new users, change roles, activate/deactivate
+ *  2. Approvers  — manage approver list, edit/add manual entries, trigger AD sync
  *  3. Alerts     — configure CC emails, admin notification address
  *  4. System     — view function health, trigger email-intake manually
  */
@@ -14,7 +14,14 @@ type Tab = 'users' | 'approvers' | 'alerts' | 'system';
 
 interface SystemSetting { key: string; value: string; description: string }
 
-const ROLE_OPTIONS: UserRole[] = ['finance', 'approver', 'auditor', 'admin'];
+const ROLE_OPTIONS: UserRole[] = ['admin', 'finance', 'approver', 'auditor'];
+
+const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
+  admin:    'Full system access — manage users, settings, exports',
+  finance:  'Review invoices, assign approvers, generate CSV exports',
+  approver: 'Approve or reject invoices assigned to them',
+  auditor:  'Read-only access to all records and audit trail',
+};
 
 const ROLE_COLOURS: Record<UserRole, { bg: string; color: string }> = {
   admin:    { bg: '#fef3c7', color: '#92400e' },
@@ -57,17 +64,35 @@ export default function AdminPanel() {
 
 // ─── Users Tab ────────────────────────────────────────────────────────────────
 
+interface InviteForm { email: string; display_name: string; role: UserRole }
+const EMPTY_INVITE: InviteForm = { email: '', display_name: '', role: 'finance' };
+
 function UsersTab() {
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null);
-  const [msg, setMsg] = useState('');
+  const [profiles, setProfiles]     = useState<Profile[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [saving, setSaving]         = useState<string | null>(null);
+  const [msg, setMsg]               = useState('');
+  const [msgType, setMsgType]       = useState<'success' | 'error'>('success');
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviting, setInviting]     = useState(false);
+  const [inviteForm, setInviteForm] = useState<InviteForm>(EMPTY_INVITE);
+
+  function flash(m: string, type: 'success' | 'error' = 'success') {
+    setMsg(m); setMsgType(type);
+    setTimeout(() => setMsg(''), 4000);
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from('profiles').select('*').order('display_name');
-    setProfiles((data as Profile[]) ?? []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').order('display_name');
+      if (error) { setMsg('Could not load users: ' + error.message); setMsgType('error'); }
+      setProfiles((data as Profile[]) ?? []);
+    } catch (e) {
+      setMsg('Load failed: ' + (e as Error).message); setMsgType('error');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -75,19 +100,40 @@ function UsersTab() {
   async function changeRole(id: string, role: UserRole) {
     setSaving(id);
     const { error } = await supabase.from('profiles').update({ role, updated_at: new Date().toISOString() }).eq('id', id);
-    if (error) { setMsg('Error: ' + error.message); }
-    else { setMsg('Role updated.'); await load(); }
+    if (error) flash('Error: ' + error.message, 'error');
+    else { flash('Role updated.'); await load(); }
     setSaving(null);
-    setTimeout(() => setMsg(''), 3000);
   }
 
   async function toggleActive(id: string, current: boolean) {
     setSaving(id);
     const { error } = await supabase.from('profiles').update({ is_active: !current, updated_at: new Date().toISOString() }).eq('id', id);
-    if (error) { setMsg('Error: ' + error.message); }
-    else { setMsg('Status updated.'); await load(); }
+    if (error) flash('Error: ' + error.message, 'error');
+    else { flash('Status updated.'); await load(); }
     setSaving(null);
-    setTimeout(() => setMsg(''), 3000);
+  }
+
+  async function inviteUser() {
+    const { email, display_name, role } = inviteForm;
+    if (!email.trim() || !display_name.trim()) {
+      flash('Email and full name are required.', 'error');
+      return;
+    }
+    setInviting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-actions', {
+        body: { action: 'invite_user', email: email.trim().toLowerCase(), display_name: display_name.trim(), role },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      flash(`✓ Invitation sent to ${email.trim().toLowerCase()}`);
+      setInviteForm(EMPTY_INVITE);
+      setShowInvite(false);
+      await load();
+    } catch (e) {
+      flash('Error: ' + (e as Error).message, 'error');
+    }
+    setInviting(false);
   }
 
   if (loading) return <div style={s.loading}>Loading users…</div>;
@@ -97,10 +143,70 @@ function UsersTab() {
       <div style={s.sectionHeader}>
         <div>
           <div style={s.sectionTitle}>System Users</div>
-          <div style={s.sectionSub}>All users who have signed in. Change roles or deactivate accounts here.</div>
+          <div style={s.sectionSub}>All users who can sign in. Invite new staff, change roles, or deactivate accounts.</div>
         </div>
-        {msg && <div style={s.toast}>{msg}</div>}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {msg && <div style={{ ...s.toast, ...(msgType === 'error' ? s.toastError : {}) }}>{msg}</div>}
+          <button style={s.btnPrimary} onClick={() => setShowInvite((v) => !v)}>
+            {showInvite ? 'Cancel' : '+ Invite User'}
+          </button>
+        </div>
       </div>
+
+      {/* Invite form */}
+      {showInvite && (
+        <div style={s.addForm}>
+          <div style={s.addFormTitle}>Invite New User</div>
+          <div style={{ ...s.sectionSub, marginTop: 4, marginBottom: 4 }}>
+            An invitation email will be sent to them with a link to set their password and sign in.
+          </div>
+          <div style={{ ...s.formGrid, marginTop: 12 }}>
+            <div style={s.formGroup}>
+              <label style={s.label}>Email Address *</label>
+              <input
+                style={s.input}
+                type="email"
+                value={inviteForm.email}
+                placeholder="jane@gardenerschools.com"
+                onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+              />
+            </div>
+            <div style={s.formGroup}>
+              <label style={s.label}>Full Name *</label>
+              <input
+                style={s.input}
+                value={inviteForm.display_name}
+                placeholder="e.g. Jane Smith"
+                onChange={(e) => setInviteForm({ ...inviteForm, display_name: e.target.value })}
+              />
+            </div>
+            <div style={s.formGroup}>
+              <label style={s.label}>Role</label>
+              <select
+                style={s.input}
+                value={inviteForm.role}
+                onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value as UserRole })}
+              >
+                {ROLE_OPTIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r.charAt(0).toUpperCase() + r.slice(1)}{r === 'admin' ? ' ⚠ Full access' : ''}
+                  </option>
+                ))}
+              </select>
+              <div style={s.roleHint}>{ROLE_DESCRIPTIONS[inviteForm.role]}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button style={s.btnPrimary} disabled={inviting} onClick={inviteUser}>
+              {inviting ? 'Sending invite…' : 'Send Invitation'}
+            </button>
+            <button style={s.btnSecondary} onClick={() => { setShowInvite(false); setInviteForm(EMPTY_INVITE); }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={s.card}>
         <table style={s.table}>
           <thead>
@@ -157,51 +263,69 @@ function UsersTab() {
 
 // ─── Approvers Tab ────────────────────────────────────────────────────────────
 
-interface NewApprover { display_name: string; email: string; department: string }
+interface NewApprover  { display_name: string; email: string; department: string }
+interface EditApprover { display_name: string; email: string; department: string }
 const EMPTY_NEW: NewApprover = { display_name: '', email: '', department: '' };
 
 function ApproversTab() {
-  const [approvers, setApprovers] = useState<Approver[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [syncing, setSyncing]     = useState(false);
-  const [saving, setSaving]       = useState(false);
-  const [removing, setRemoving]   = useState<string | null>(null);
-  const [showAdd, setShowAdd]     = useState(false);
-  const [form, setForm]           = useState<NewApprover>(EMPTY_NEW);
-  const [msg, setMsg]             = useState('');
+  const [approvers, setApprovers]     = useState<Approver[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [syncing, setSyncing]         = useState(false);
+  const [saving, setSaving]           = useState(false);
+  const [removing, setRemoving]       = useState<string | null>(null);
+  const [showAdd, setShowAdd]         = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
+  const [form, setForm]               = useState<NewApprover>(EMPTY_NEW);
+  const [editingId, setEditingId]     = useState<string | null>(null);
+  const [editForm, setEditForm]       = useState<EditApprover>({ display_name: '', email: '', department: '' });
+  const [editSaving, setEditSaving]   = useState(false);
+  const [msg, setMsg]                 = useState('');
+  const [msgType, setMsgType]         = useState<'success' | 'error'>('success');
 
-  const load = useCallback(async () => {
+  function flash(m: string, type: 'success' | 'error' = 'success') {
+    setMsg(m); setMsgType(type);
+    setTimeout(() => setMsg(''), 4000);
+  }
+
+  const load = useCallback(async (includeInactive = false) => {
     setLoading(true);
-    const { data } = await supabase.from('approvers').select('*').order('display_name');
-    setApprovers((data as Approver[]) ?? []);
-    setLoading(false);
+    try {
+      let query = supabase.from('approvers').select('*').order('display_name');
+      if (!includeInactive) query = query.eq('is_active', true);
+      const { data, error } = await query;
+      if (error) { setMsg('Could not load approvers: ' + error.message); setMsgType('error'); }
+      setApprovers((data as Approver[]) ?? []);
+    } catch (e) {
+      setMsg('Load failed: ' + (e as Error).message); setMsgType('error');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-
-  function flash(m: string) { setMsg(m); setTimeout(() => setMsg(''), 4000); }
+  // Reload when the inactive toggle changes
+  useEffect(() => { load(showInactive); }, [load, showInactive]);
 
   async function triggerSync() {
     setSyncing(true);
     try {
       const { error } = await supabase.functions.invoke('sync-approvers', { method: 'POST' });
-      if (error) flash('Sync error: ' + error.message);
-      else { flash('Sync complete — approver list refreshed from Azure AD.'); await load(); }
-    } catch (e) { flash('Sync failed: ' + (e as Error).message); }
+      if (error) flash('Sync error: ' + error.message, 'error');
+      else { flash('Sync complete — approver list refreshed from Azure AD.'); await load(showInactive); }
+    } catch (e) { flash('Sync failed: ' + (e as Error).message, 'error'); }
     setSyncing(false);
   }
 
   async function toggleApprover(id: string, current: boolean) {
     setRemoving(id);
     const { error } = await supabase.from('approvers').update({ is_active: !current }).eq('id', id);
-    if (error) flash('Error: ' + error.message);
-    else { flash('Approver status updated.'); await load(); }
+    if (error) flash('Error: ' + error.message, 'error');
+    else { flash('Approver status updated.'); await load(showInactive); }
     setRemoving(null);
   }
 
   async function addApprover() {
     if (!form.display_name.trim() || !form.email.trim()) {
-      flash('Name and email are required.');
+      flash('Name and email are required.', 'error');
       return;
     }
     setSaving(true);
@@ -213,9 +337,40 @@ function ApproversTab() {
       is_active:    true,
       synced_at:    new Date().toISOString(),
     });
-    if (error) flash('Error: ' + error.message);
-    else { flash('Approver added.'); setForm(EMPTY_NEW); setShowAdd(false); await load(); }
+    if (error) flash('Error: ' + error.message, 'error');
+    else { flash('Approver added.'); setForm(EMPTY_NEW); setShowAdd(false); await load(showInactive); }
     setSaving(false);
+  }
+
+  function startEdit(a: Approver) {
+    setEditingId(a.id);
+    setEditForm({
+      display_name: a.display_name,
+      email:        a.email,
+      department:   a.department ?? '',
+    });
+    setShowAdd(false);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditForm({ display_name: '', email: '', department: '' });
+  }
+
+  async function saveEdit(id: string) {
+    if (!editForm.display_name.trim() || !editForm.email.trim()) {
+      flash('Name and email are required.', 'error');
+      return;
+    }
+    setEditSaving(true);
+    const { error } = await supabase.from('approvers').update({
+      display_name: editForm.display_name.trim(),
+      email:        editForm.email.trim().toLowerCase(),
+      department:   editForm.department.trim() || null,
+    }).eq('id', id);
+    if (error) flash('Error: ' + error.message, 'error');
+    else { flash('Approver updated.'); cancelEdit(); await load(showInactive); }
+    setEditSaving(false);
   }
 
   if (loading) return <div style={s.loading}>Loading approvers…</div>;
@@ -225,15 +380,24 @@ function ApproversTab() {
       <div style={s.sectionHeader}>
         <div>
           <div style={s.sectionTitle}>Approvers</div>
-          <div style={s.sectionSub}>People who can approve invoices. Synced from Azure AD daily, or add manually.</div>
+          <div style={s.sectionSub}>People who can approve invoices. Add individually or import from Microsoft 365.</div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {msg && <div style={s.toast}>{msg}</div>}
-          <button style={s.btnSecondary} onClick={() => setShowAdd((v) => !v)}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {msg && <div style={{ ...s.toast, ...(msgType === 'error' ? s.toastError : {}) }}>{msg}</div>}
+          <label style={s.toggleLabel}>
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              style={{ marginRight: 5 }}
+            />
+            Show inactive
+          </label>
+          <button style={s.btnSecondary} onClick={() => { setShowAdd((v) => !v); cancelEdit(); }}>
             {showAdd ? 'Cancel' : '+ Add Manually'}
           </button>
           <button style={s.btnPrimary} onClick={triggerSync} disabled={syncing}>
-            {syncing ? 'Syncing…' : 'Sync from Azure AD'}
+            {syncing ? 'Importing…' : '↓ Import from Microsoft 365'}
           </button>
         </div>
       </div>
@@ -278,29 +442,86 @@ function ApproversTab() {
           </thead>
           <tbody>
             {approvers.map((a) => (
-              <tr key={a.id} style={{ ...s.row, opacity: a.is_active ? 1 : 0.5 }}>
-                <td style={s.td}><div style={s.name}>{a.display_name}</div></td>
-                <td style={s.td}><span style={s.mono}>{a.email}</span></td>
-                <td style={s.td}>{a.department ?? <span style={{ color: '#bbb' }}>—</span>}</td>
-                <td style={s.td}>
-                  <span style={a.azure_oid ? s.badgeAzure : s.badgeManual}>
-                    {a.azure_oid ? 'Azure AD' : 'Manual'}
-                  </span>
-                </td>
-                <td style={s.td}>
-                  <span style={{ ...s.statusDot, background: a.is_active ? '#22c55e' : '#e5e7eb' }} />
-                  {a.is_active ? 'Active' : 'Inactive'}
-                </td>
-                <td style={s.td}>
-                  <button
-                    style={{ ...s.btn, ...(a.is_active ? s.btnDanger : s.btnSecondary) }}
-                    disabled={removing === a.id}
-                    onClick={() => toggleApprover(a.id, a.is_active)}
-                  >
-                    {removing === a.id ? '…' : a.is_active ? 'Deactivate' : 'Reactivate'}
-                  </button>
-                </td>
-              </tr>
+              editingId === a.id ? (
+                /* ── Inline edit row ── */
+                <tr key={a.id} style={{ ...s.row, background: '#f0f7ff' }}>
+                  <td style={s.td}>
+                    <input
+                      style={{ ...s.input, width: '100%' }}
+                      value={editForm.display_name}
+                      placeholder="Full name"
+                      onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })}
+                    />
+                  </td>
+                  <td style={s.td}>
+                    <input
+                      style={{ ...s.input, width: '100%' }}
+                      type="email"
+                      value={editForm.email}
+                      placeholder="email@school.com"
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    />
+                  </td>
+                  <td style={s.td}>
+                    <input
+                      style={{ ...s.input, width: '100%' }}
+                      value={editForm.department}
+                      placeholder="Department"
+                      onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                    />
+                  </td>
+                  <td style={s.td} colSpan={2}>
+                    <span style={a.azure_oid ? s.badgeAzure : s.badgeManual}>
+                      {a.azure_oid ? 'Azure AD' : 'Manual'}
+                    </span>
+                  </td>
+                  <td style={s.td}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        style={s.btnPrimary}
+                        disabled={editSaving}
+                        onClick={() => saveEdit(a.id)}
+                      >
+                        {editSaving ? 'Saving…' : 'Save'}
+                      </button>
+                      <button style={s.btnSecondary} onClick={cancelEdit}>Cancel</button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                /* ── Normal row ── */
+                <tr key={a.id} style={{ ...s.row, opacity: a.is_active ? 1 : 0.5 }}>
+                  <td style={s.td}><div style={s.name}>{a.display_name}</div></td>
+                  <td style={s.td}><span style={s.mono}>{a.email}</span></td>
+                  <td style={s.td}>{a.department ?? <span style={{ color: '#bbb' }}>—</span>}</td>
+                  <td style={s.td}>
+                    <span style={a.azure_oid ? s.badgeAzure : s.badgeManual}>
+                      {a.azure_oid ? 'Azure AD' : 'Manual'}
+                    </span>
+                  </td>
+                  <td style={s.td}>
+                    <span style={{ ...s.statusDot, background: a.is_active ? '#22c55e' : '#e5e7eb' }} />
+                    {a.is_active ? 'Active' : 'Inactive'}
+                  </td>
+                  <td style={s.td}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        style={{ ...s.btn, ...s.btnSecondary }}
+                        onClick={() => startEdit(a)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        style={{ ...s.btn, ...(a.is_active ? s.btnDanger : s.btnSecondary) }}
+                        disabled={removing === a.id}
+                        onClick={() => toggleApprover(a.id, a.is_active)}
+                      >
+                        {removing === a.id ? '…' : a.is_active ? 'Deactivate' : 'Reactivate'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
             ))}
           </tbody>
         </table>
@@ -325,16 +546,22 @@ function AlertsTab() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('system_settings').select('*');
-      const vals: Record<string, string> = {};
-      const ds: Record<string, string> = {};
-      for (const row of (data as SystemSetting[]) ?? []) {
-        vals[row.key] = row.value ?? '';
-        ds[row.key]   = row.description ?? '';
+      try {
+        const { data, error } = await supabase.from('system_settings').select('*');
+        if (error) setMsg('Could not load settings: ' + error.message);
+        const vals: Record<string, string> = {};
+        const ds: Record<string, string> = {};
+        for (const row of (data as SystemSetting[]) ?? []) {
+          vals[row.key] = row.value ?? '';
+          ds[row.key]   = row.description ?? '';
+        }
+        setSettings(vals);
+        setDescs(ds);
+      } catch (e) {
+        setMsg('Load failed: ' + (e as Error).message);
+      } finally {
+        setLoading(false);
       }
-      setSettings(vals);
-      setDescs(ds);
-      setLoading(false);
     })();
   }, []);
 
@@ -443,13 +670,14 @@ function AlertsTab() {
 interface FnStatus { name: string; label: string; schedule: string }
 
 const FUNCTIONS: FnStatus[] = [
-  { name: 'email-intake',       label: 'Email Intake',       schedule: 'Every 5 minutes' },
-  { name: 'sync-approvers',     label: 'Sync Approvers',     schedule: 'Daily at 07:00 UTC' },
-  { name: 'reminder-scheduler', label: 'Reminder Scheduler', schedule: 'Daily at 08:00 UTC' },
+  { name: 'email-intake',       label: 'Email Intake',       schedule: 'Every 5 minutes (auto)' },
+  { name: 'reminder-scheduler', label: 'Reminder Scheduler', schedule: 'Daily at 08:00 UTC (auto)' },
   { name: 'gemini-processor',   label: 'Gemini Processor',   schedule: 'On-demand (per invoice)' },
   { name: 'send-approval',      label: 'Send Approval',      schedule: 'On-demand (per invoice)' },
   { name: 'process-approval',   label: 'Process Approval',   schedule: 'On-demand (approver click)' },
   { name: 'generate-csv',       label: 'Generate CSV',       schedule: 'On-demand (export page)' },
+  { name: 'sync-approvers',     label: 'Import M365 Approvers', schedule: 'Manual (Approvers tab)' },
+  { name: 'admin-actions',      label: 'Admin Actions',      schedule: 'On-demand (admin panel)' },
 ];
 
 function SystemTab() {
@@ -609,6 +837,7 @@ const s: Record<string, React.CSSProperties> = {
   badgeManual:  { display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 11, background: '#f3e8ff', color: '#6b21a8', fontWeight: 600 },
   statusDot:    { display: 'inline-block', width: 8, height: 8, borderRadius: '50%', marginRight: 6 },
   toast:        { background: '#1e3a5f', color: '#fff', padding: '6px 14px', borderRadius: 6, fontSize: 13 },
+  toastError:   { background: '#dc2626' },
   select:       { padding: '4px 8px', borderRadius: 4, border: '1px solid #dee2e6', fontSize: 13, marginRight: 6 },
   btn:          { padding: '4px 12px', fontSize: 12, borderRadius: 4, cursor: 'pointer', border: '1px solid transparent' },
   btnPrimary:   { padding: '8px 18px', fontSize: 13, borderRadius: 4, cursor: 'pointer', background: '#1e3a5f', color: '#fff', border: 'none', fontWeight: 600 },
@@ -619,6 +848,8 @@ const s: Record<string, React.CSSProperties> = {
   formGrid:     { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 },
   formGroup:    { display: 'flex', flexDirection: 'column', gap: 4 },
   label:        { fontSize: 12, fontWeight: 600, color: '#495057' },
+  roleHint:     { fontSize: 11, color: '#6c757d', marginTop: 4 },
+  toggleLabel:  { fontSize: 13, color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center' },
   input:        { padding: '7px 10px', borderRadius: 4, border: '1px solid #dee2e6', fontSize: 13, outline: 'none' },
   settingsGrid: { padding: 24, display: 'flex', flexDirection: 'column', gap: 28 },
   settingRow:   { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 },

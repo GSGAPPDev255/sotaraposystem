@@ -44,7 +44,12 @@ export default function InvoiceReview() {
 
   useEffect(() => {
     if (po) {
-      setForm(po as Partial<PurchaseOrder>);
+      // Strip all joined relationship objects — they are not PO columns and will
+      // cause a PostgREST schema error if sent in an update payload.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { invoice_file, approver, second_approver, approved_by,
+              created_by, updated_by, forwarded_to, ...poFields } = po as Record<string, unknown>;
+      setForm(poFields as Partial<PurchaseOrder>);
     }
   }, [po]);
 

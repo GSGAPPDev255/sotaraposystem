@@ -38,8 +38,8 @@ Deno.serve(async (req) => {
       .from('purchase_orders')
       .select(`
         *,
-        approver:assigned_approver_id (id, email, display_name),
-        second_approver:second_approver_id (id, email, display_name)
+        approver:approvers!assigned_approver_id (id, email, display_name),
+        second_approver:approvers!second_approver_id (id, email, display_name)
       `)
       .eq('id', purchase_order_id)
       .single();

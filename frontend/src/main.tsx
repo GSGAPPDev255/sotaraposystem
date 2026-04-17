@@ -6,7 +6,11 @@ import App from './App';
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 30_000, retry: 1 },
+    queries: {
+      staleTime:  5 * 60 * 1000,  // data stays fresh for 5 minutes — no background refetch on every nav
+      gcTime:    10 * 60 * 1000,  // keep unused cache for 10 minutes
+      retry: 1,
+    },
   },
 });
 
