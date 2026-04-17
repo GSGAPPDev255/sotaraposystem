@@ -161,13 +161,28 @@ export default function InvoiceReview() {
             <button style={styles.saveBtn} onClick={handleSave} disabled={saving}>
               {saving ? 'Saving…' : 'Save Draft'}
             </button>
-            <button
-              style={styles.approvalBtn}
-              onClick={() => setShowConfirm(true)}
-              disabled={!poData.assigned_approver_id}
-            >
-              Mark Ready for Approval
-            </button>
+            <div style={styles.approvalBtnWrap}>
+              <button
+                style={{
+                  ...styles.approvalBtn,
+                  ...(poData.assigned_approver_id ? {} : styles.approvalBtnDisabled),
+                }}
+                onClick={() => setShowConfirm(true)}
+                disabled={!poData.assigned_approver_id}
+                title={
+                  poData.assigned_approver_id
+                    ? 'Send approval email to the assigned approver'
+                    : 'Assign a Primary Approver below, then Save Draft to enable this button'
+                }
+              >
+                Mark Ready for Approval
+              </button>
+              {!poData.assigned_approver_id && (
+                <span style={styles.approvalHint}>
+                  ⚠ Assign a Primary Approver below &amp; Save Draft to enable
+                </span>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -249,9 +264,16 @@ export default function InvoiceReview() {
             <h3 style={styles.sectionTitle}>Approval Assignment</h3>
             <div style={styles.grid2}>
               <div style={styles.field}>
-                <label style={styles.label}>Primary Approver</label>
+                <label style={styles.label}>
+                  Primary Approver <span style={{ color: '#dc3545' }}>*</span>
+                </label>
                 <select
-                  style={styles.input}
+                  style={{
+                    ...styles.input,
+                    ...(isEditable && !form.assigned_approver_id
+                      ? { borderColor: '#dc3545', background: '#fff8f8' }
+                      : {}),
+                  }}
                   value={form.assigned_approver_id ?? ''}
                   disabled={!isEditable}
                   onChange={(e) => setForm((p) => ({ ...p, assigned_approver_id: e.target.value || null }))}
@@ -261,6 +283,11 @@ export default function InvoiceReview() {
                     <option key={a.id} value={a.id}>{a.display_name} ({a.email})</option>
                   ))}
                 </select>
+                {isEditable && !form.assigned_approver_id && (
+                  <span style={{ fontSize: 11, color: '#dc3545' }}>
+                    Required before you can send for approval
+                  </span>
+                )}
               </div>
               <div style={styles.field}>
                 <label style={styles.label}>Second Approver (optional)</label>
@@ -327,6 +354,17 @@ const styles: Record<string, React.CSSProperties> = {
   approvalBtn: {
     padding: '8px 16px', background: '#1e3a5f', border: 'none',
     color: '#fff', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+  },
+  approvalBtnDisabled: {
+    background: '#adb5bd', cursor: 'not-allowed',
+  },
+  approvalBtnWrap: {
+    display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4,
+  },
+  approvalHint: {
+    fontSize: 11, color: '#a15c00', fontWeight: 500,
+    background: '#fff3cd', border: '1px solid #ffeeba',
+    padding: '3px 8px', borderRadius: 4, whiteSpace: 'nowrap',
   },
   layout: { display: 'flex', gap: 0, flex: 1, overflow: 'hidden', marginTop: 16 },
   pdfPanel: { width: '45%', minWidth: 320, background: '#f8f9fa', borderRadius: 8, overflow: 'hidden', marginRight: 16 },
