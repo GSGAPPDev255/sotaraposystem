@@ -7,7 +7,7 @@
  */
 
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
-import { supabaseAdmin, createUserClient } from '../_shared/supabase-client.ts';
+import { supabaseAdmin, getUserFromRequest } from '../_shared/supabase-client.ts';
 import { sendMail } from '../_shared/graph-client.ts';
 
 type ApprovalAction = 'approve' | 'reject' | 'forward';
@@ -23,9 +23,9 @@ Deno.serve(async (req) => {
   const corsRes = handleCors(req);
   if (corsRes) return corsRes;
 
-  // Authenticate the approver
-  const userClient = createUserClient(req);
-  const { data: { user }, error: authError } = await userClient.auth.getUser();
+  // Authenticate the approver (service-role JWT validation — robust to
+  // SUPABASE_ANON_KEY env var being missing in the Edge runtime).
+  const { user, error: authError } = await getUserFromRequest(req);
   if (authError || !user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,

@@ -39,7 +39,8 @@ export function useMarkReadyForApproval() {
     mutationFn: async (poId: string) => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Update PO status
+      // Flip status first so the send-approval function (which requires
+      // status='pending_approval') accepts the PO.
       const { data, error } = await supabase
         .from('purchase_orders')
         .update({ status: 'pending_approval', updated_by_id: user?.id })
@@ -48,11 +49,38 @@ export function useMarkReadyForApproval() {
         .single();
       if (error) throw error;
 
-      // Trigger send-approval edge function
-      const { error: fnError } = await supabase.functions.invoke('send-approval', {
-        body: { purchase_order_id: poId },
-      });
-      if (fnError) throw fnError;
+      // Trigger send-approval edge function. If this fails we must roll the
+      // status back — otherwise the PO is stuck "pending approval" with no
+      // email ever sent and no way to resend from the UI.
+      const { error: fnError, data: fnData } = await supabase.functions.invoke(
+        'send-approval',
+        { body: { purchase_order_id: poId } },
+      );
+      if (fnError) {
+        await supabase
+          .from('purchase_orders')
+          .update({ status: 'pending_finance_review', updated_by_id: user?.id })
+          .eq('id', poId);
+
+        // FunctionsHttpError swallows the body — surface a useful message.
+        let detail = fnError.message || 'Edge function error';
+        try {
+          const ctx = (fnError as { context?: { json?: () => Promise<unknown> } }).context;
+          if (ctx?.json) {
+            const body = await ctx.json() as { error?: string };
+            if (body?.error) detail = body.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(`Failed to send approval email: ${detail}`);
+      }
+      // Some edge runtimes return { error } in the data payload rather than fnError
+      if (fnData && typeof fnData === 'object' && 'error' in fnData && fnData.error) {
+        await supabase
+          .from('purchase_orders')
+          .update({ status: 'pending_finance_review', updated_by_id: user?.id })
+          .eq('id', poId);
+        throw new Error(`Failed to send approval email: ${String(fnData.error)}`);
+      }
 
       return data;
     },

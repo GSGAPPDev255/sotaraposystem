@@ -8,15 +8,14 @@
  */
 
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
-import { supabaseAdmin, createUserClient } from '../_shared/supabase-client.ts';
+import { supabaseAdmin, getUserFromRequest } from '../_shared/supabase-client.ts';
 import { sendMail } from '../_shared/graph-client.ts';
 
 Deno.serve(async (req) => {
   const corsRes = handleCors(req);
   if (corsRes) return corsRes;
 
-  const userClient = createUserClient(req);
-  const { data: { user }, error: authError } = await userClient.auth.getUser();
+  const { user, error: authError } = await getUserFromRequest(req);
   if (authError || !user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
