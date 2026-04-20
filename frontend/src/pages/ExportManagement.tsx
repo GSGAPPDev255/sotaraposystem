@@ -44,10 +44,17 @@ export default function ExportManagement() {
   };
 
   const getExportDownloadUrl = async (storagePath: string) => {
-    const { data } = await supabase.storage
-      .from('csv-exports')
-      .createSignedUrl(storagePath, 3600);
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+    setError(null);
+    try {
+      const { data, error: urlError } = await supabase.storage
+        .from('csv-exports')
+        .createSignedUrl(storagePath, 3600);
+      if (urlError) throw urlError;
+      if (!data?.signedUrl) throw new Error('No signed URL returned');
+      window.open(data.signedUrl, '_blank');
+    } catch (e) {
+      setError(`Could not generate download link: ${(e as Error).message}`);
+    }
   };
 
   return (
@@ -131,9 +138,17 @@ export default function ExportManagement() {
         {result && (
           <div style={styles.successBanner}>
             CSV generated with {result.count} records.{' '}
-            <a href={result.url} download style={{ color: '#0a3622', fontWeight: 700 }}>
+            <button
+              type="button"
+              onClick={() => window.open(result.url, '_blank')}
+              style={{
+                background: 'none', border: 'none', padding: 0,
+                color: '#0a3622', fontWeight: 700, cursor: 'pointer',
+                textDecoration: 'underline', font: 'inherit',
+              }}
+            >
               Download CSV
-            </a>
+            </button>
           </div>
         )}
       </section>
