@@ -1,0 +1,263 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Sotara Ledger · Design System
+   Editorial / refined aesthetic for a finance approval platform.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..800,0..100;1,9..144,300..800,0..100&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ── Paper & ink ────────────────────────────────────────────────────── */
+  --paper:         #F4EFE4;   /* page background, warm off-white */
+  --paper-bright:  #FAF7F0;   /* cards & elevated surfaces */
+  --paper-tint:    #EDE6D4;   /* subtle stripe / hover */
+  --ink:           #14181F;   /* near-black w/ blue undertone */
+  --ink-soft:      #2A2F3B;
+  --ink-muted:     #6B6459;   /* warm grey body text */
+  --ink-faint:     #9C9485;   /* secondary text */
+  --line:          #E4DDCB;   /* hairline dividers */
+  --line-strong:   #CABFA3;
+
+  /* ── Signature accent — burnt copper (the embossed seal colour) ─── */
+  --accent:        #B54E1C;
+  --accent-dark:   #8A3A14;
+  --accent-soft:   #F5E4D7;
+  --accent-text:   #6D2F12;
+
+  /* ── Status palette — antique, not neon ─────────────────────────── */
+  --success:       #3A6A3F;
+  --success-soft:  #DFE9D9;
+  --warning:       #9A6B1E;
+  --warning-soft:  #F2E4C6;
+  --danger:        #A03135;
+  --danger-soft:   #F2D8D6;
+  --info:          #2D5572;
+  --info-soft:     #D8E3EC;
+
+  /* ── Typography ─────────────────────────────────────────────────── */
+  --font-display:  'Fraunces', 'Times New Roman', serif;
+  --font-ui:       'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+  --font-mono:     'IBM Plex Mono', 'Courier New', monospace;
+
+  /* ── Rhythm ─────────────────────────────────────────────────────── */
+  --radius-sm: 3px;
+  --radius:    6px;
+  --radius-lg: 10px;
+
+  --shadow-sm:  0 1px 0 rgba(20, 24, 31, 0.04), 0 1px 2px rgba(20, 24, 31, 0.06);
+  --shadow:     0 2px 0 rgba(20, 24, 31, 0.04), 0 4px 14px rgba(20, 24, 31, 0.08);
+  --shadow-lg:  0 8px 30px rgba(20, 24, 31, 0.12);
+
+  --ease:       cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* ── Base reset & document ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'ss01', 'cv11';   /* Plex stylistic alt */
+
+  /* Subtle paper grain for warmth — tiny, unobtrusive */
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(20, 24, 31, 0.025) 1px, transparent 0);
+  background-size: 3px 3px;
+}
+
+/* Ensure numbers line up in tables & amount fields */
+.num, .tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' on, 'lnum' on;
+}
+
+/* ── Headings ──────────────────────────────────────────────────────── */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-variation-settings: 'opsz' 72, 'SOFT' 30;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+h1 { font-size: 2rem;    line-height: 1.1;  letter-spacing: -0.02em; }
+h2 { font-size: 1.5rem;  line-height: 1.2;  letter-spacing: -0.015em; }
+h3 { font-size: 1.15rem; line-height: 1.3; }
+
+/* ── Inputs ────────────────────────────────────────────────────────── */
+input, textarea, select, button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+input[type='text'], input[type='number'], input[type='date'],
+input[type='email'], textarea, select {
+  background: var(--paper-bright);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 11px;
+  font-size: 13px;
+  color: var(--ink);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.15s var(--ease);
+  outline: none;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(181, 78, 28, 0.12);
+  background: #fff;
+}
+
+input:disabled, textarea:disabled, select:disabled {
+  background: var(--paper-tint);
+  color: var(--ink-muted);
+  cursor: not-allowed;
+}
+
+input:read-only:not(:disabled) {
+  background: var(--paper-tint);
+}
+
+label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Buttons (default reset) ───────────────────────────────────────── */
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Primary button — copper plate ─────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: transform 0.1s var(--ease), background 0.15s var(--ease), box-shadow 0.15s var(--ease);
+  user-select: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+.btn-primary:active:not(:disabled) { transform: translateY(1px); }
+
+.btn-accent {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-accent:hover:not(:disabled) {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--paper-bright);
+  border-color: var(--ink-muted);
+}
+
+.btn-link {
+  background: transparent;
+  color: var(--accent-text);
+  padding: 4px 0;
+  font-weight: 500;
+  text-underline-offset: 3px;
+}
+.btn-link:hover { text-decoration: underline; }
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ── Card surface ──────────────────────────────────────────────────── */
+.card {
+  background: var(--paper-bright);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Animated entry ────────────────────────────────────────────────── */
+@keyframes fade-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-rise { animation: fade-rise 0.5s var(--ease) both; }
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.12s; }
+.delay-3 { animation-delay: 0.20s; }
+.delay-4 { animation-delay: 0.30s; }
+
+@keyframes spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ── Scrollbar (WebKit) ────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 10px;
+  border: 2px solid var(--paper);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--ink-faint); }
+
+/* ── Selection ─────────────────────────────────────────────────────── */
+::selection { background: var(--accent); color: #fff; }
+
+/* ── Status dot helper ─────────────────────────────────────────────── */
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}

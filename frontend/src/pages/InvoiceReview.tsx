@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
 import {
   useInvoice, useNominalLines, useVatLines, useOcrExtraction,
   useUpdateInvoice, useUpsertNominalLine, useUpsertVatLine,
@@ -44,8 +43,6 @@ export default function InvoiceReview() {
 
   useEffect(() => {
     if (po) {
-      // Strip all joined relationship objects — they are not PO columns and will
-      // cause a PostgREST schema error if sent in an update payload.
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { invoice_file, approver, second_approver, approved_by,
               created_by, updated_by, forwarded_to, ...poFields } = po as Record<string, unknown>;
@@ -78,36 +75,49 @@ export default function InvoiceReview() {
   const poData = po as PurchaseOrder & { invoice_file?: unknown; approver?: unknown };
   const isEditable = ['pending_finance_review', 'rejected'].includes(poData.status);
 
-  const f = (key: keyof PurchaseOrder, label: string, type: 'text' | 'number' | 'date' | 'textarea' = 'text') => (
-    <div style={styles.field} key={key}>
-      <label style={styles.label}>{label}</label>
-      {type === 'textarea' ? (
-        <textarea
-          style={{ ...styles.input, height: 60, resize: 'vertical' }}
-          value={String(form[key] ?? '')}
-          readOnly={!isEditable}
-          disabled={!isEditable}
-          maxLength={key === 'description' ? 75 : undefined}
-          onChange={(e) => setForm((prev) => ({ ...prev, [key]: e.target.value || null }))}
-        />
-      ) : (
-        <input
-          type={type}
-          style={styles.input}
-          value={String(form[key] ?? '')}
-          readOnly={!isEditable}
-          disabled={!isEditable}
-          onChange={(e) => setForm((prev) => ({
-            ...prev,
-            [key]: type === 'number' ? parseFloat(e.target.value) || null : e.target.value || null,
-          }))}
-        />
-      )}
-      {key === 'description' && (
-        <span style={styles.charCount}>{String(form.description ?? '').length}/75</span>
-      )}
-    </div>
-  );
+  const f = (key: keyof PurchaseOrder, label: string, type: 'text' | 'number' | 'date' | 'textarea' = 'text') => {
+    const isMoney = type === 'number';
+    const inputStyle: React.CSSProperties = {
+      ...styles.input,
+      ...(isMoney ? { fontFamily: 'var(--font-mono)', fontSize: 13 } : {}),
+      ...(!isEditable ? styles.inputReadOnly : {}),
+    };
+    return (
+      <div style={styles.field} key={key}>
+        <label style={styles.label}>{label}</label>
+        {type === 'textarea' ? (
+          <textarea
+            style={{ ...inputStyle, height: 68, resize: 'vertical', lineHeight: 1.5 }}
+            value={String(form[key] ?? '')}
+            readOnly={!isEditable}
+            disabled={!isEditable}
+            maxLength={key === 'description' ? 75 : undefined}
+            onChange={(e) => setForm((prev) => ({ ...prev, [key]: e.target.value || null }))}
+          />
+        ) : (
+          <input
+            type={type}
+            style={inputStyle}
+            value={String(form[key] ?? '')}
+            readOnly={!isEditable}
+            disabled={!isEditable}
+            onChange={(e) => setForm((prev) => ({
+              ...prev,
+              [key]: type === 'number' ? parseFloat(e.target.value) || null : e.target.value || null,
+            }))}
+          />
+        )}
+        {key === 'description' && (
+          <span style={styles.charCount}>
+            <span style={{ fontFamily: 'var(--font-mono)' }}>
+              {String(form.description ?? '').length}
+            </span>
+            <span style={{ color: 'var(--ink-faint)' }}> / 75</span>
+          </span>
+        )}
+      </div>
+    );
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -149,80 +159,109 @@ export default function InvoiceReview() {
 
   return (
     <div style={styles.page}>
-      {/* Header */}
-      <div style={styles.header}>
-        <button style={styles.back} onClick={() => navigate('/dashboard')}>← Back</button>
-        <div style={styles.headerMid}>
-          <h1 style={styles.title}>{poData.supplier_name ?? 'Unnamed Invoice'}</h1>
-          <StatusBadge status={poData.status} />
-        </div>
-        {isEditable && (
-          <div style={styles.headerActions}>
-            <button style={styles.saveBtn} onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving…' : 'Save Draft'}
-            </button>
-            <div style={styles.approvalBtnWrap}>
-              <button
-                style={{
-                  ...styles.approvalBtn,
-                  ...(poData.assigned_approver_id ? {} : styles.approvalBtnDisabled),
-                }}
-                onClick={() => setShowConfirm(true)}
-                disabled={!poData.assigned_approver_id}
-                title={
-                  poData.assigned_approver_id
-                    ? 'Send approval email to the assigned approver'
-                    : 'Assign a Primary Approver below, then Save Draft to enable this button'
-                }
-              >
-                Mark Ready for Approval
-              </button>
-              {!poData.assigned_approver_id && (
-                <span style={styles.approvalHint}>
-                  ⚠ Assign a Primary Approver below &amp; Save Draft to enable
-                </span>
-              )}
+      {/* Masthead */}
+      <div style={styles.masthead} className="animate-rise">
+        <button style={styles.back} onClick={() => navigate('/dashboard')}>
+          <span style={styles.backArrow}>←</span> Back to ledger
+        </button>
+
+        <div style={styles.mastheadMain}>
+          <div style={styles.titleRow}>
+            <div>
+              <div style={styles.kicker}>
+                <span style={styles.kickerRule} /> Invoice Review
+              </div>
+              <h1 style={styles.title}>{poData.supplier_name ?? 'Unnamed Invoice'}</h1>
+              <div style={styles.subtitle}>
+                <span style={styles.subRef}>{poData.transaction_reference ?? '—'}</span>
+                <span style={styles.subSep}>·</span>
+                <StatusBadge status={poData.status} />
+              </div>
             </div>
+
+            {isEditable && (
+              <div style={styles.headerActions}>
+                <button
+                  className="btn"
+                  style={styles.saveBtn}
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? 'Saving…' : 'Save Draft'}
+                </button>
+                <div style={styles.approvalBtnWrap}>
+                  <button
+                    className="btn"
+                    style={{
+                      ...styles.approvalBtn,
+                      ...(poData.assigned_approver_id ? {} : styles.approvalBtnDisabled),
+                    }}
+                    onClick={() => setShowConfirm(true)}
+                    disabled={!poData.assigned_approver_id}
+                    title={
+                      poData.assigned_approver_id
+                        ? 'Send approval email to the assigned approver'
+                        : 'Assign a Primary Approver below, then Save Draft to enable this button'
+                    }
+                  >
+                    Send for Approval
+                    <span style={styles.approvalArrow}>→</span>
+                  </button>
+                  {!poData.assigned_approver_id && (
+                    <span style={styles.approvalHint}>
+                      Assign a primary approver &amp; save draft
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {saveError && <div style={styles.errorBanner}>{saveError}</div>}
-      {saveSuccess && <div style={styles.successBanner}>Saved successfully.</div>}
+      {saveError && <div style={styles.errorBanner}>
+        <span style={styles.bannerLabel}>Error</span>
+        {saveError}
+      </div>}
+      {saveSuccess && <div style={styles.successBanner}>
+        <span style={styles.bannerLabelSuccess}>Saved</span>
+        Your changes are safe.
+      </div>}
 
       <div style={styles.layout}>
         {/* Left: PDF viewer */}
-        <div style={styles.pdfPanel}>
-          {pdfUrl ? (
-            <iframe
-              src={pdfUrl}
-              style={styles.pdfFrame}
-              title="Invoice document"
-            />
-          ) : (
-            <div style={styles.noPdf}>No document available</div>
-          )}
+        <div style={styles.pdfPanel} className="animate-rise delay-1">
+          <div style={styles.pdfLabel}>§ Document</div>
+          <div style={styles.pdfFrameWrap}>
+            {pdfUrl ? (
+              <iframe
+                src={pdfUrl}
+                style={styles.pdfFrame}
+                title="Invoice document"
+              />
+            ) : (
+              <div style={styles.noPdf}>
+                <div style={styles.noPdfMark}>§</div>
+                <div style={styles.noPdfText}>No document available</div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right: Form */}
-        <div style={styles.formPanel}>
-          {/* OCR Comparison */}
+        <div style={styles.formPanel} className="animate-rise delay-2">
           <OcrComparisonPanel ocr={ocr ?? null} po={poData} />
 
-          {/* Supplier */}
-          <section style={styles.section}>
-            <h3 style={styles.sectionTitle}>Supplier Details</h3>
+          <Section title="Supplier" number="01">
             <div style={styles.grid2}>
               {f('account_number', 'Account Number')}
               {f('supplier_name', 'Supplier Name')}
               {f('supplier_ref', 'Supplier Ref')}
               {f('supplier_ref_code', 'Supplier Ref Code')}
             </div>
-          </section>
+          </Section>
 
-          {/* Invoice */}
-          <section style={styles.section}>
-            <h3 style={styles.sectionTitle}>Invoice Details</h3>
+          <Section title="Invoice" number="02">
             <div style={styles.grid2}>
               {f('transaction_reference', 'Invoice Number')}
               {f('second_reference', 'Second Reference')}
@@ -230,49 +269,42 @@ export default function InvoiceReview() {
               {f('due_date', 'Due Date', 'date')}
               {f('posting_date', 'Posting Date', 'date')}
             </div>
-            <div style={styles.grid1}>
+            <div style={{ marginTop: 14 }}>
               {f('description', 'Description (max 75 chars)', 'textarea')}
             </div>
-          </section>
+          </Section>
 
-          {/* Amounts */}
-          <section style={styles.section}>
-            <h3 style={styles.sectionTitle}>Financial Amounts</h3>
+          <Section title="Amounts" number="03">
             <div style={styles.grid3}>
               {f('net_amount', 'Net Amount', 'number')}
               {f('vat_amount', 'VAT Amount', 'number')}
               {f('gross_amount', 'Gross Amount', 'number')}
             </div>
-          </section>
+          </Section>
 
-          {/* Nominal Lines */}
-          <section style={styles.section}>
-            <h3 style={styles.sectionTitle}>Nominal Ledger Analysis</h3>
+          <Section title="Nominal Ledger Analysis" number="04">
             <NominalLineEditor lineNumber={1} value={nominal1} onChange={setNominal1} readOnly={!isEditable} />
             <NominalLineEditor lineNumber={2} value={nominal2} onChange={setNominal2} readOnly={!isEditable} />
-          </section>
+          </Section>
 
-          {/* VAT Lines */}
-          <section style={styles.section}>
-            <h3 style={styles.sectionTitle}>VAT Analysis</h3>
+          <Section title="VAT Analysis" number="05">
             <VatLineEditor lineNumber={1} value={vat1} onChange={setVat1} readOnly={!isEditable} />
             <VatLineEditor lineNumber={2} value={vat2} onChange={setVat2} readOnly={!isEditable} />
-          </section>
+          </Section>
 
-          {/* Approver Assignment */}
-          <section style={styles.section}>
-            <h3 style={styles.sectionTitle}>Approval Assignment</h3>
+          <Section title="Approval Assignment" number="06">
             <div style={styles.grid2}>
               <div style={styles.field}>
                 <label style={styles.label}>
-                  Primary Approver <span style={{ color: '#dc3545' }}>*</span>
+                  Primary Approver <span style={styles.required}>*</span>
                 </label>
                 <select
                   style={{
                     ...styles.input,
                     ...(isEditable && !form.assigned_approver_id
-                      ? { borderColor: '#dc3545', background: '#fff8f8' }
+                      ? { borderColor: 'var(--danger)', background: 'var(--danger-soft)' }
                       : {}),
+                    ...(!isEditable ? styles.inputReadOnly : {}),
                   }}
                   value={form.assigned_approver_id ?? ''}
                   disabled={!isEditable}
@@ -284,15 +316,15 @@ export default function InvoiceReview() {
                   ))}
                 </select>
                 {isEditable && !form.assigned_approver_id && (
-                  <span style={{ fontSize: 11, color: '#dc3545' }}>
-                    Required before you can send for approval
+                  <span style={styles.fieldWarn}>
+                    Required before approval can be sent
                   </span>
                 )}
               </div>
               <div style={styles.field}>
                 <label style={styles.label}>Second Approver (optional)</label>
                 <select
-                  style={styles.input}
+                  style={{ ...styles.input, ...(!isEditable ? styles.inputReadOnly : {}) }}
                   value={form.second_approver_id ?? ''}
                   disabled={!isEditable}
                   onChange={(e) => setForm((p) => ({ ...p, second_approver_id: e.target.value || null }))}
@@ -304,31 +336,40 @@ export default function InvoiceReview() {
                 </select>
               </div>
             </div>
-            <div style={styles.field}>
-              <label style={styles.label}>Finance Notes (shown to approver)</label>
-              <textarea
-                style={{ ...styles.input, height: 80, resize: 'vertical' }}
-                value={form.finance_notes ?? ''}
-                readOnly={!isEditable}
-                disabled={!isEditable}
-                onChange={(e) => setForm((p) => ({ ...p, finance_notes: e.target.value || null }))}
-              />
+            <div style={{ marginTop: 14 }}>
+              <div style={styles.field}>
+                <label style={styles.label}>Finance Notes (shown to approver)</label>
+                <textarea
+                  style={{
+                    ...styles.input,
+                    height: 88,
+                    resize: 'vertical',
+                    lineHeight: 1.55,
+                    fontFamily: 'var(--font-display)',
+                    fontStyle: form.finance_notes ? 'normal' : 'italic',
+                    ...(!isEditable ? styles.inputReadOnly : {}),
+                  }}
+                  value={form.finance_notes ?? ''}
+                  readOnly={!isEditable}
+                  disabled={!isEditable}
+                  placeholder="A short note for the approver…"
+                  onChange={(e) => setForm((p) => ({ ...p, finance_notes: e.target.value || null }))}
+                />
+              </div>
             </div>
-          </section>
+          </Section>
 
-          {/* Audit Trail */}
-          <section style={styles.section}>
-            <h3 style={styles.sectionTitle}>Audit Trail</h3>
+          <Section title="Audit Trail" number="07">
             <AuditTimeline entries={auditLog} />
-          </section>
+          </Section>
         </div>
       </div>
 
       {showConfirm && (
         <ConfirmDialog
-          title="Mark Ready for Approval"
-          message="This will send an approval email to the assigned approver. Finance data will become read-only. Proceed?"
-          confirmLabel="Send for Approval"
+          title="Send for Approval"
+          message="An approval email will be dispatched to the assigned approver. The invoice will become read-only for finance until the decision is returned."
+          confirmLabel="Send approval email"
           onConfirm={handleMarkReady}
           onCancel={() => setShowConfirm(false)}
         />
@@ -337,51 +378,315 @@ export default function InvoiceReview() {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  page: { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
-  header: {
-    display: 'flex', alignItems: 'center', gap: 16, padding: '0 0 16px',
-    borderBottom: '1px solid #e9ecef', flexShrink: 0, flexWrap: 'wrap',
+function Section({ title, number, children }: { title: string; number: string; children: React.ReactNode }) {
+  return (
+    <section style={sectionStyles.wrap}>
+      <div style={sectionStyles.header}>
+        <span style={sectionStyles.number}>{number}</span>
+        <h3 style={sectionStyles.title}>{title}</h3>
+        <span style={sectionStyles.rule} />
+      </div>
+      <div>{children}</div>
+    </section>
+  );
+}
+
+const sectionStyles: Record<string, React.CSSProperties> = {
+  wrap: {
+    background: 'var(--paper-bright)',
+    border: '1px solid var(--line)',
+    borderRadius: 10,
+    padding: '22px 24px',
+    marginBottom: 14,
   },
-  back: { background: 'none', border: 'none', cursor: 'pointer', color: '#1e3a5f', fontSize: 14 },
-  headerMid: { flex: 1, display: 'flex', alignItems: 'center', gap: 12 },
-  title: { margin: 0, fontSize: 18, fontWeight: 700, color: '#1e3a5f' },
-  headerActions: { display: 'flex', gap: 10 },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 18,
+  },
+  number: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 11,
+    color: 'var(--accent)',
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+  },
+  title: {
+    margin: 0,
+    fontFamily: 'var(--font-display)',
+    fontSize: 20,
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.015em',
+  },
+  rule: {
+    flex: 1,
+    height: 1,
+    background: 'var(--line)',
+  },
+};
+
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 20,
+  },
+  masthead: {
+    padding: '4px 0 0',
+  },
+  back: {
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    cursor: 'pointer',
+    color: 'var(--ink-muted)',
+    fontSize: 12,
+    fontWeight: 500,
+    marginBottom: 18,
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    transition: 'color 0.15s var(--ease)',
+  },
+  backArrow: { color: 'var(--accent)' },
+  mastheadMain: {
+    paddingBottom: 20,
+    borderBottom: '1px solid var(--line)',
+  },
+  titleRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: 32,
+    flexWrap: 'wrap',
+  },
+  kicker: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    fontSize: 11,
+    fontWeight: 600,
+    color: 'var(--accent-text)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.22em',
+    marginBottom: 12,
+  },
+  kickerRule: {
+    width: 28,
+    height: 1,
+    background: 'var(--accent)',
+  },
+  title: {
+    margin: 0,
+    fontFamily: 'var(--font-display)',
+    fontSize: 'clamp(32px, 3.2vw, 42px)',
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.025em',
+    lineHeight: 1.05,
+    fontVariationSettings: "'opsz' 144, 'SOFT' 40",
+  },
+  subtitle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 14,
+  },
+  subRef: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 13,
+    color: 'var(--ink-muted)',
+  },
+  subSep: { color: 'var(--ink-faint)' },
+  headerActions: { display: 'flex', gap: 10, alignItems: 'flex-start' },
   saveBtn: {
-    padding: '8px 16px', background: '#fff', border: '1px solid #1e3a5f',
-    color: '#1e3a5f', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+    padding: '10px 20px',
+    background: 'transparent',
+    border: '1px solid var(--line-strong)',
+    color: 'var(--ink-soft)',
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 500,
   },
   approvalBtn: {
-    padding: '8px 16px', background: '#1e3a5f', border: 'none',
-    color: '#fff', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+    padding: '10px 20px',
+    background: 'var(--accent)',
+    border: '1px solid var(--accent)',
+    color: '#fff',
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 500,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 10,
   },
+  approvalArrow: { fontSize: 14 },
   approvalBtnDisabled: {
-    background: '#adb5bd', cursor: 'not-allowed',
+    background: 'var(--line-strong)',
+    borderColor: 'var(--line-strong)',
+    color: 'var(--ink-faint)',
+    cursor: 'not-allowed',
   },
   approvalBtnWrap: {
-    display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4,
+    display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6,
   },
   approvalHint: {
-    fontSize: 11, color: '#a15c00', fontWeight: 500,
-    background: '#fff3cd', border: '1px solid #ffeeba',
-    padding: '3px 8px', borderRadius: 4, whiteSpace: 'nowrap',
+    fontSize: 10.5,
+    color: 'var(--warning)',
+    fontWeight: 500,
+    textTransform: 'uppercase',
+    letterSpacing: '0.12em',
   },
-  layout: { display: 'flex', gap: 0, flex: 1, overflow: 'hidden', marginTop: 16 },
-  pdfPanel: { width: '45%', minWidth: 320, background: '#f8f9fa', borderRadius: 8, overflow: 'hidden', marginRight: 16 },
-  pdfFrame: { width: '100%', height: '100%', border: 'none' },
-  noPdf: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#888', fontSize: 14 },
-  formPanel: { flex: 1, overflowY: 'auto' },
-  section: { background: '#fff', borderRadius: 8, padding: 16, marginBottom: 12, border: '1px solid #e9ecef' },
-  sectionTitle: { margin: '0 0 14px', fontSize: 14, fontWeight: 700, color: '#1e3a5f' },
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' },
-  grid3: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px 16px' },
-  grid1: { marginTop: 10 },
-  field: { display: 'flex', flexDirection: 'column', gap: 4 },
-  label: { fontSize: 12, color: '#666', fontWeight: 500 },
-  input: { padding: '7px 10px', border: '1px solid #ced4da', borderRadius: 4, fontSize: 13, outline: 'none', fontFamily: 'inherit' },
-  charCount: { fontSize: 11, color: '#888', textAlign: 'right' },
-  errorBanner: { background: '#f8d7da', color: '#842029', padding: '10px 14px', borderRadius: 6, marginBottom: 12, fontSize: 13 },
-  successBanner: { background: '#d1e7dd', color: '#0a3622', padding: '10px 14px', borderRadius: 6, marginBottom: 12, fontSize: 13 },
-  loading: { padding: 40, textAlign: 'center', color: '#888' },
-  error: { padding: 16, background: '#f8d7da', color: '#842029', borderRadius: 8 },
+  layout: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(320px, 0.82fr) minmax(0, 1fr)',
+    gap: 18,
+  },
+  pdfPanel: {
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'sticky',
+    top: 16,
+    alignSelf: 'flex-start',
+    maxHeight: 'calc(100vh - 120px)',
+  },
+  pdfLabel: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10.5,
+    color: 'var(--accent)',
+    fontWeight: 500,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    paddingLeft: 4,
+  },
+  pdfFrameWrap: {
+    background: 'var(--paper-bright)',
+    border: '1px solid var(--line)',
+    borderRadius: 10,
+    overflow: 'hidden',
+    flex: 1,
+    minHeight: 640,
+  },
+  pdfFrame: { width: '100%', height: '100%', minHeight: 640, border: 'none' },
+  noPdf: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    minHeight: 400,
+  },
+  noPdfMark: {
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    fontSize: 48,
+    color: 'var(--ink-faint)',
+    opacity: 0.45,
+  },
+  noPdfText: {
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    color: 'var(--ink-muted)',
+    fontSize: 14,
+  },
+  formPanel: {
+    minWidth: 0,
+  },
+  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' },
+  grid3: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px 20px' },
+  field: { display: 'flex', flexDirection: 'column', gap: 6 },
+  label: {
+    fontSize: 10.5,
+    color: 'var(--ink-faint)',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+  },
+  input: {
+    padding: '9px 12px',
+    border: '1px solid var(--line-strong)',
+    borderRadius: 7,
+    fontSize: 13.5,
+    background: 'var(--paper)',
+    color: 'var(--ink)',
+    outline: 'none',
+    fontFamily: 'inherit',
+    transition: 'border-color 0.15s var(--ease), background 0.15s var(--ease)',
+  },
+  inputReadOnly: {
+    background: 'transparent',
+    color: 'var(--ink-soft)',
+    cursor: 'default',
+  },
+  required: { color: 'var(--danger)', fontFamily: 'var(--font-display)', fontStyle: 'italic' },
+  fieldWarn: {
+    fontSize: 10.5,
+    color: 'var(--danger)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+    fontWeight: 600,
+    marginTop: 2,
+  },
+  charCount: {
+    fontSize: 11,
+    color: 'var(--ink-muted)',
+    textAlign: 'right',
+  },
+  errorBanner: {
+    background: 'var(--danger-soft)',
+    border: '1px solid rgba(160, 49, 53, 0.25)',
+    color: 'var(--danger)',
+    padding: '10px 16px',
+    borderRadius: 8,
+    fontSize: 13,
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: 12,
+  },
+  successBanner: {
+    background: 'var(--success-soft)',
+    border: '1px solid rgba(58, 106, 63, 0.25)',
+    color: 'var(--success)',
+    padding: '10px 16px',
+    borderRadius: 8,
+    fontSize: 13,
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: 12,
+  },
+  bannerLabel: {
+    fontWeight: 700,
+    fontSize: 9.5,
+    letterSpacing: '0.18em',
+    textTransform: 'uppercase',
+    flexShrink: 0,
+  },
+  bannerLabelSuccess: {
+    fontWeight: 700,
+    fontSize: 9.5,
+    letterSpacing: '0.18em',
+    textTransform: 'uppercase',
+    flexShrink: 0,
+  },
+  loading: {
+    padding: 80,
+    textAlign: 'center',
+    color: 'var(--ink-muted)',
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    fontSize: 16,
+  },
+  error: {
+    padding: 16,
+    background: 'var(--danger-soft)',
+    color: 'var(--danger)',
+    borderRadius: 8,
+    border: '1px solid rgba(160, 49, 53, 0.25)',
+  },
 };

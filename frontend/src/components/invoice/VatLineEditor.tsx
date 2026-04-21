@@ -10,12 +10,18 @@ interface VatLineEditorProps {
 export default function VatLineEditor({
   lineNumber, value, onChange, readOnly = false,
 }: VatLineEditorProps) {
+  const inputStyle = (mono: boolean): React.CSSProperties => ({
+    ...styles.input,
+    ...(mono ? { fontFamily: 'var(--font-mono)', fontSize: 12.5 } : {}),
+    ...(readOnly ? styles.inputReadOnly : {}),
+  });
+
   const num = (key: keyof VatLine, label: string) => (
     <div style={styles.field} key={key}>
       <label style={styles.label}>{label}</label>
       <input
         type="number"
-        style={styles.input}
+        style={inputStyle(true)}
         value={String(value[key] ?? '')}
         readOnly={readOnly}
         disabled={readOnly}
@@ -29,7 +35,7 @@ export default function VatLineEditor({
       <label style={styles.label}>{label}</label>
       <input
         type="text"
-        style={styles.input}
+        style={inputStyle(false)}
         value={String(value[key] ?? '')}
         readOnly={readOnly}
         disabled={readOnly}
@@ -40,7 +46,10 @@ export default function VatLineEditor({
 
   return (
     <div style={styles.card}>
-      <h4 style={styles.heading}>VAT Line {lineNumber}</h4>
+      <div style={styles.header}>
+        <span style={styles.lineTag}>VAT {lineNumber.toString().padStart(2, '0')}</span>
+        <span style={styles.rule} />
+      </div>
       <div style={styles.grid}>
         {num('tax_rate', 'Tax Rate (%)')}
         {txt('vat_code', 'VAT Code')}
@@ -52,13 +61,50 @@ export default function VatLineEditor({
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  card: { border: '1px solid #e9ecef', borderRadius: 6, padding: 14, marginBottom: 12 },
-  heading: { margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#495057' },
-  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' },
-  field: { display: 'flex', flexDirection: 'column', gap: 3 },
-  label: { fontSize: 12, color: '#666', fontWeight: 500 },
+  card: {
+    border: '1px dashed var(--line-strong)',
+    borderRadius: 8,
+    padding: '16px 18px',
+    marginBottom: 12,
+    background: 'var(--paper)',
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  lineTag: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10.5,
+    color: 'var(--accent)',
+    fontWeight: 600,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+  },
+  rule: { flex: 1, height: 1, background: 'var(--line)' },
+  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 18px' },
+  field: { display: 'flex', flexDirection: 'column', gap: 5 },
+  label: {
+    fontSize: 10,
+    color: 'var(--ink-faint)',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+  },
   input: {
-    padding: '6px 8px', border: '1px solid #ced4da', borderRadius: 4,
-    fontSize: 13, outline: 'none',
+    padding: '8px 11px',
+    border: '1px solid var(--line-strong)',
+    borderRadius: 6,
+    fontSize: 13,
+    background: 'var(--paper-bright)',
+    color: 'var(--ink)',
+    outline: 'none',
+    transition: 'border-color 0.15s var(--ease)',
+  },
+  inputReadOnly: {
+    background: 'transparent',
+    color: 'var(--ink-soft)',
+    cursor: 'default',
   },
 };

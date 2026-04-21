@@ -23,33 +23,54 @@ const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   auditor:  'Read-only access to all records and audit trail',
 };
 
-const ROLE_COLOURS: Record<UserRole, { bg: string; color: string }> = {
-  admin:    { bg: '#fef3c7', color: '#92400e' },
-  finance:  { bg: '#dbeafe', color: '#1e40af' },
-  approver: { bg: '#dcfce7', color: '#166534' },
-  auditor:  { bg: '#f3e8ff', color: '#6b21a8' },
+const ROLE_TINTS: Record<UserRole, { bg: string; color: string; border: string }> = {
+  admin:    { bg: 'var(--warning-soft)', color: 'var(--warning)', border: 'rgba(154, 107, 30, 0.25)' },
+  finance:  { bg: 'var(--info-soft)',    color: 'var(--info)',    border: 'rgba(45, 85, 114, 0.25)' },
+  approver: { bg: 'var(--success-soft)', color: 'var(--success)', border: 'rgba(58, 106, 63, 0.25)' },
+  auditor:  { bg: 'var(--accent-soft)',  color: 'var(--accent-text)', border: 'rgba(181, 78, 28, 0.25)' },
 };
+
+const TAB_META: { id: Tab; number: string; label: string }[] = [
+  { id: 'users',     number: '01', label: 'Users' },
+  { id: 'approvers', number: '02', label: 'Approvers' },
+  { id: 'alerts',    number: '03', label: 'Alerts' },
+  { id: 'system',    number: '04', label: 'System' },
+];
 
 export default function AdminPanel() {
   const [tab, setTab] = useState<Tab>('users');
 
   return (
-    <div>
-      <div style={s.pageHeader}>
-        <h1 style={s.pageTitle}>Admin Panel</h1>
+    <div style={s.page}>
+      {/* Masthead */}
+      <div style={s.masthead} className="animate-rise">
+        <div style={s.kicker}>
+          <span style={s.kickerRule} /> Administration
+        </div>
+        <h1 style={s.pageTitle}>
+          The <em style={s.pageTitleEm}>control panel</em>.
+        </h1>
+        <p style={s.subtitle}>
+          Users, approvers, alerts, and system health — all in one place.
+        </p>
       </div>
 
       {/* Tab bar */}
-      <div style={s.tabBar}>
-        {(['users', 'approvers', 'alerts', 'system'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            style={{ ...s.tab, ...(tab === t ? s.tabActive : {}) }}
-            onClick={() => setTab(t)}
-          >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
+      <div style={s.tabBar} className="animate-rise delay-1">
+        {TAB_META.map((t) => {
+          const active = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              style={{ ...s.tab, ...(active ? s.tabActive : {}) }}
+              onClick={() => setTab(t.id)}
+            >
+              <span style={{ ...s.tabNumber, ...(active ? s.tabNumberActive : {}) }}>{t.number}</span>
+              <span style={s.tabLabel}>{t.label}</span>
+              {active && <span style={s.tabIndicator} />}
+            </button>
+          );
+        })}
       </div>
 
       <div style={s.content}>
@@ -126,7 +147,7 @@ function UsersTab() {
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
-      flash(`✓ Invitation sent to ${email.trim().toLowerCase()}`);
+      flash(`Invitation sent to ${email.trim().toLowerCase()}`);
       setInviteForm(EMPTY_INVITE);
       setShowInvite(false);
       await load();
@@ -140,29 +161,28 @@ function UsersTab() {
 
   return (
     <div>
-      <div style={s.sectionHeader}>
-        <div>
-          <div style={s.sectionTitle}>System Users</div>
-          <div style={s.sectionSub}>All users who can sign in. Invite new staff, change roles, or deactivate accounts.</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {msg && <div style={{ ...s.toast, ...(msgType === 'error' ? s.toastError : {}) }}>{msg}</div>}
-          <button style={s.btnPrimary} onClick={() => setShowInvite((v) => !v)}>
+      <SectionHeader
+        title="System users"
+        subtitle="All users who can sign in. Invite new staff, change roles, or deactivate accounts."
+        msg={msg}
+        msgType={msgType}
+        actions={
+          <button className="btn" style={s.btnPrimary} onClick={() => setShowInvite((v) => !v)}>
             {showInvite ? 'Cancel' : '+ Invite User'}
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Invite form */}
       {showInvite && (
-        <div style={s.addForm}>
-          <div style={s.addFormTitle}>Invite New User</div>
-          <div style={{ ...s.sectionSub, marginTop: 4, marginBottom: 4 }}>
-            An invitation email will be sent to them with a link to set their password and sign in.
+        <div style={s.addForm} className="animate-rise">
+          <div style={s.addFormKicker}>§ New invite</div>
+          <div style={s.addFormTitle}>Invite a new user</div>
+          <div style={s.addFormSub}>
+            They'll receive an email with a link to set a password and sign in.
           </div>
-          <div style={{ ...s.formGrid, marginTop: 12 }}>
+          <div style={{ ...s.formGrid, marginTop: 16 }}>
             <div style={s.formGroup}>
-              <label style={s.label}>Email Address *</label>
+              <label style={s.label}>Email address *</label>
               <input
                 style={s.input}
                 type="email"
@@ -172,7 +192,7 @@ function UsersTab() {
               />
             </div>
             <div style={s.formGroup}>
-              <label style={s.label}>Full Name *</label>
+              <label style={s.label}>Full name *</label>
               <input
                 style={s.input}
                 value={inviteForm.display_name}
@@ -189,18 +209,18 @@ function UsersTab() {
               >
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r} value={r}>
-                    {r.charAt(0).toUpperCase() + r.slice(1)}{r === 'admin' ? ' ⚠ Full access' : ''}
+                    {r.charAt(0).toUpperCase() + r.slice(1)}{r === 'admin' ? ' — full access' : ''}
                   </option>
                 ))}
               </select>
               <div style={s.roleHint}>{ROLE_DESCRIPTIONS[inviteForm.role]}</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button style={s.btnPrimary} disabled={inviting} onClick={inviteUser}>
-              {inviting ? 'Sending invite…' : 'Send Invitation'}
+          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+            <button className="btn" style={s.btnPrimary} disabled={inviting} onClick={inviteUser}>
+              {inviting ? 'Sending…' : 'Send invitation →'}
             </button>
-            <button style={s.btnSecondary} onClick={() => { setShowInvite(false); setInviteForm(EMPTY_INVITE); }}>
+            <button className="btn" style={s.btnSecondary} onClick={() => { setShowInvite(false); setInviteForm(EMPTY_INVITE); }}>
               Cancel
             </button>
           </div>
@@ -216,40 +236,55 @@ function UsersTab() {
               <th style={s.th}>Role</th>
               <th style={s.th}>Status</th>
               <th style={s.th}>Joined</th>
-              <th style={s.th}>Actions</th>
+              <th style={{ ...s.th, textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {profiles.map((p) => (
-              <tr key={p.id} style={s.row}>
+            {profiles.map((p, idx) => (
+              <tr key={p.id} style={{ ...s.row, ...(idx % 2 === 1 ? s.rowAlt : {}) }}>
+                <td style={s.td}><div style={s.name}>{p.display_name}</div></td>
+                <td style={{ ...s.td, ...s.mono }}>{p.email}</td>
                 <td style={s.td}>
-                  <div style={s.name}>{p.display_name}</div>
+                  <span style={{
+                    ...s.roleBadge,
+                    background: ROLE_TINTS[p.role].bg,
+                    color: ROLE_TINTS[p.role].color,
+                    border: `1px solid ${ROLE_TINTS[p.role].border}`,
+                  }}>
+                    {p.role}
+                  </span>
                 </td>
-                <td style={s.td}><span style={s.mono}>{p.email}</span></td>
                 <td style={s.td}>
-                  <span style={{ ...s.roleBadge, ...ROLE_COLOURS[p.role] }}>{p.role}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{
+                      ...s.statusDot,
+                      background: p.is_active ? 'var(--success)' : 'var(--ink-faint)',
+                    }} />
+                    <span style={{ fontSize: 12, color: p.is_active ? 'var(--ink)' : 'var(--ink-faint)' }}>
+                      {p.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </span>
                 </td>
-                <td style={s.td}>
-                  <span style={{ ...s.statusDot, background: p.is_active ? '#22c55e' : '#e5e7eb' }} />
-                  {p.is_active ? 'Active' : 'Inactive'}
-                </td>
-                <td style={s.td}>{new Date(p.created_at).toLocaleDateString('en-GB')}</td>
-                <td style={s.td}>
-                  <select
-                    style={s.select}
-                    value={p.role}
-                    disabled={saving === p.id}
-                    onChange={(e) => changeRole(p.id, e.target.value as UserRole)}
-                  >
-                    {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                  <button
-                    style={{ ...s.btn, ...(p.is_active ? s.btnDanger : s.btnSecondary) }}
-                    disabled={saving === p.id}
-                    onClick={() => toggleActive(p.id, p.is_active)}
-                  >
-                    {saving === p.id ? '…' : p.is_active ? 'Deactivate' : 'Activate'}
-                  </button>
+                <td style={{ ...s.td, ...s.mono }}>{new Date(p.created_at).toLocaleDateString('en-GB')}</td>
+                <td style={{ ...s.td, textAlign: 'right' }}>
+                  <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                    <select
+                      style={s.selectSm}
+                      value={p.role}
+                      disabled={saving === p.id}
+                      onChange={(e) => changeRole(p.id, e.target.value as UserRole)}
+                    >
+                      {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                    <button
+                      className="btn"
+                      style={p.is_active ? s.btnDanger : s.btnSecondary}
+                      disabled={saving === p.id}
+                      onClick={() => toggleActive(p.id, p.is_active)}
+                    >
+                      {saving === p.id ? '…' : p.is_active ? 'Deactivate' : 'Activate'}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -302,7 +337,6 @@ function ApproversTab() {
     }
   }, []);
 
-  // Reload when the inactive toggle changes
   useEffect(() => { load(showInactive); }, [load, showInactive]);
 
   async function triggerSync() {
@@ -377,42 +411,44 @@ function ApproversTab() {
 
   return (
     <div>
-      <div style={s.sectionHeader}>
-        <div>
-          <div style={s.sectionTitle}>Approvers</div>
-          <div style={s.sectionSub}>People who can approve invoices. Add individually or import from Microsoft 365.</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {msg && <div style={{ ...s.toast, ...(msgType === 'error' ? s.toastError : {}) }}>{msg}</div>}
-          <label style={s.toggleLabel}>
-            <input
-              type="checkbox"
-              checked={showInactive}
-              onChange={(e) => setShowInactive(e.target.checked)}
-              style={{ marginRight: 5 }}
-            />
-            Show inactive
-          </label>
-          <button style={s.btnSecondary} onClick={() => { setShowAdd((v) => !v); cancelEdit(); }}>
-            {showAdd ? 'Cancel' : '+ Add Manually'}
-          </button>
-          <button style={s.btnPrimary} onClick={triggerSync} disabled={syncing}>
-            {syncing ? 'Importing…' : '↓ Import from Microsoft 365'}
-          </button>
-        </div>
-      </div>
+      <SectionHeader
+        title="Approvers"
+        subtitle="People who can approve invoices. Add individually or import from Microsoft 365."
+        msg={msg}
+        msgType={msgType}
+        actions={
+          <>
+            <label style={s.toggleLabel}>
+              <input
+                type="checkbox"
+                checked={showInactive}
+                onChange={(e) => setShowInactive(e.target.checked)}
+                style={{ marginRight: 6 }}
+              />
+              Show inactive
+            </label>
+            <button className="btn" style={s.btnSecondary} onClick={() => { setShowAdd((v) => !v); cancelEdit(); }}>
+              {showAdd ? 'Cancel' : '+ Add manually'}
+            </button>
+            <button className="btn" style={s.btnPrimary} onClick={triggerSync} disabled={syncing}>
+              {syncing ? 'Importing…' : 'Import from Microsoft 365 ↓'}
+            </button>
+          </>
+        }
+      />
 
       {showAdd && (
-        <div style={s.addForm}>
-          <div style={s.addFormTitle}>Add Manual Approver</div>
+        <div style={s.addForm} className="animate-rise">
+          <div style={s.addFormKicker}>§ Manual approver</div>
+          <div style={s.addFormTitle}>Add a manual approver</div>
           <div style={s.formGrid}>
             <div style={s.formGroup}>
-              <label style={s.label}>Full Name *</label>
+              <label style={s.label}>Full name *</label>
               <input style={s.input} value={form.display_name} placeholder="e.g. Jane Smith"
                 onChange={(e) => setForm({ ...form, display_name: e.target.value })} />
             </div>
             <div style={s.formGroup}>
-              <label style={s.label}>Email Address *</label>
+              <label style={s.label}>Email address *</label>
               <input style={s.input} type="email" value={form.email} placeholder="jane@gardenerschools.com"
                 onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </div>
@@ -422,8 +458,8 @@ function ApproversTab() {
                 onChange={(e) => setForm({ ...form, department: e.target.value })} />
             </div>
           </div>
-          <button style={s.btnPrimary} disabled={saving} onClick={addApprover}>
-            {saving ? 'Saving…' : 'Add Approver'}
+          <button className="btn" style={s.btnPrimary} disabled={saving} onClick={addApprover}>
+            {saving ? 'Saving…' : 'Add approver →'}
           </button>
         </div>
       )}
@@ -437,82 +473,75 @@ function ApproversTab() {
               <th style={s.th}>Department</th>
               <th style={s.th}>Source</th>
               <th style={s.th}>Status</th>
-              <th style={s.th}>Actions</th>
+              <th style={{ ...s.th, textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {approvers.map((a) => (
+            {approvers.map((a, idx) => (
               editingId === a.id ? (
-                /* ── Inline edit row ── */
-                <tr key={a.id} style={{ ...s.row, background: '#f0f7ff' }}>
+                <tr key={a.id} style={{ ...s.row, background: 'var(--accent-soft)' }}>
                   <td style={s.td}>
-                    <input
-                      style={{ ...s.input, width: '100%' }}
-                      value={editForm.display_name}
+                    <input style={{ ...s.input, width: '100%' }} value={editForm.display_name}
                       placeholder="Full name"
-                      onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })}
-                    />
+                      onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })} />
                   </td>
                   <td style={s.td}>
-                    <input
-                      style={{ ...s.input, width: '100%' }}
-                      type="email"
-                      value={editForm.email}
+                    <input style={{ ...s.input, width: '100%' }} type="email" value={editForm.email}
                       placeholder="email@school.com"
-                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    />
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
                   </td>
                   <td style={s.td}>
-                    <input
-                      style={{ ...s.input, width: '100%' }}
-                      value={editForm.department}
+                    <input style={{ ...s.input, width: '100%' }} value={editForm.department}
                       placeholder="Department"
-                      onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
-                    />
+                      onChange={(e) => setEditForm({ ...editForm, department: e.target.value })} />
                   </td>
                   <td style={s.td} colSpan={2}>
                     <span style={a.azure_oid ? s.badgeAzure : s.badgeManual}>
                       {a.azure_oid ? 'Azure AD' : 'Manual'}
                     </span>
                   </td>
-                  <td style={s.td}>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button
-                        style={s.btnPrimary}
-                        disabled={editSaving}
-                        onClick={() => saveEdit(a.id)}
-                      >
+                  <td style={{ ...s.td, textAlign: 'right' }}>
+                    <div style={{ display: 'inline-flex', gap: 6 }}>
+                      <button className="btn" style={s.btnPrimary} disabled={editSaving} onClick={() => saveEdit(a.id)}>
                         {editSaving ? 'Saving…' : 'Save'}
                       </button>
-                      <button style={s.btnSecondary} onClick={cancelEdit}>Cancel</button>
+                      <button className="btn" style={s.btnSecondary} onClick={cancelEdit}>Cancel</button>
                     </div>
                   </td>
                 </tr>
               ) : (
-                /* ── Normal row ── */
-                <tr key={a.id} style={{ ...s.row, opacity: a.is_active ? 1 : 0.5 }}>
+                <tr key={a.id} style={{
+                  ...s.row,
+                  ...(idx % 2 === 1 ? s.rowAlt : {}),
+                  opacity: a.is_active ? 1 : 0.55,
+                }}>
                   <td style={s.td}><div style={s.name}>{a.display_name}</div></td>
-                  <td style={s.td}><span style={s.mono}>{a.email}</span></td>
-                  <td style={s.td}>{a.department ?? <span style={{ color: '#bbb' }}>—</span>}</td>
+                  <td style={{ ...s.td, ...s.mono }}>{a.email}</td>
+                  <td style={s.td}>
+                    {a.department ?? <span style={s.faint}>—</span>}
+                  </td>
                   <td style={s.td}>
                     <span style={a.azure_oid ? s.badgeAzure : s.badgeManual}>
                       {a.azure_oid ? 'Azure AD' : 'Manual'}
                     </span>
                   </td>
                   <td style={s.td}>
-                    <span style={{ ...s.statusDot, background: a.is_active ? '#22c55e' : '#e5e7eb' }} />
-                    {a.is_active ? 'Active' : 'Inactive'}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                      <span style={{
+                        ...s.statusDot,
+                        background: a.is_active ? 'var(--success)' : 'var(--ink-faint)',
+                      }} />
+                      <span style={{ fontSize: 12, color: a.is_active ? 'var(--ink)' : 'var(--ink-faint)' }}>
+                        {a.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </span>
                   </td>
-                  <td style={s.td}>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                  <td style={{ ...s.td, textAlign: 'right' }}>
+                    <div style={{ display: 'inline-flex', gap: 6 }}>
+                      <button className="btn" style={s.btnSecondary} onClick={() => startEdit(a)}>Edit</button>
                       <button
-                        style={{ ...s.btn, ...s.btnSecondary }}
-                        onClick={() => startEdit(a)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        style={{ ...s.btn, ...(a.is_active ? s.btnDanger : s.btnSecondary) }}
+                        className="btn"
+                        style={a.is_active ? s.btnDanger : s.btnSecondary}
                         disabled={removing === a.id}
                         onClick={() => toggleApprover(a.id, a.is_active)}
                       >
@@ -526,7 +555,9 @@ function ApproversTab() {
           </tbody>
         </table>
         {approvers.length === 0 && (
-          <div style={s.empty}>No approvers yet. Click "Sync from Azure AD" or add one manually.</div>
+          <div style={s.empty}>
+            No approvers yet. Click "Import from Microsoft 365" or add one manually.
+          </div>
         )}
       </div>
     </div>
@@ -586,81 +617,79 @@ function AlertsTab() {
 
   return (
     <div>
-      <div style={s.sectionHeader}>
-        <div>
-          <div style={s.sectionTitle}>Alert & Notification Settings</div>
-          <div style={s.sectionSub}>Configure who receives emails and how reminders behave.</div>
-        </div>
-        {msg && <div style={s.toast}>{msg}</div>}
-      </div>
+      <SectionHeader
+        title="Alerts & notifications"
+        subtitle="Configure who receives emails and how reminders behave."
+        msg={msg}
+        msgType="success"
+      />
 
       <div style={s.card}>
         <div style={s.settingsGrid}>
-
-          <div style={s.settingRow}>
-            <div style={s.settingLabel}>
-              <div style={s.settingKey}>CC Emails on Approvals</div>
-              <div style={s.settingDesc}>{descs['alert_cc_emails'] ?? 'Comma-separated emails CCed on all approval request emails'}</div>
-            </div>
-            <input
-              style={{ ...s.input, width: 380 }}
-              value={settings['alert_cc_emails'] ?? ''}
-              placeholder="finance@school.com, head@school.com"
-              onChange={(e) => setSettings({ ...settings, alert_cc_emails: e.target.value })}
-            />
-          </div>
-
-          <div style={s.settingRow}>
-            <div style={s.settingLabel}>
-              <div style={s.settingKey}>Admin Alert Email</div>
-              <div style={s.settingDesc}>{descs['admin_alert_email'] ?? 'Receives alerts when system errors occur'}</div>
-            </div>
-            <input
-              style={{ ...s.input, width: 380 }}
-              type="email"
-              value={settings['admin_alert_email'] ?? ''}
-              placeholder="admin@gardenerschools.com"
-              onChange={(e) => setSettings({ ...settings, admin_alert_email: e.target.value })}
-            />
-          </div>
-
-          <div style={s.settingRow}>
-            <div style={s.settingLabel}>
-              <div style={s.settingKey}>Reminder After (days)</div>
-              <div style={s.settingDesc}>{descs['reminder_days'] ?? 'Days to wait before sending approval reminder'}</div>
-            </div>
-            <input
-              style={{ ...s.input, width: 100 }}
-              type="number"
-              min={1}
-              max={30}
-              value={settings['reminder_days'] ?? '3'}
-              onChange={(e) => setSettings({ ...settings, reminder_days: e.target.value })}
-            />
-          </div>
-
-          <div style={s.settingRow}>
-            <div style={s.settingLabel}>
-              <div style={s.settingKey}>Max Reminders</div>
-              <div style={s.settingDesc}>{descs['max_reminders'] ?? 'Maximum reminders per invoice before escalating'}</div>
-            </div>
-            <input
-              style={{ ...s.input, width: 100 }}
-              type="number"
-              min={1}
-              max={10}
-              value={settings['max_reminders'] ?? '3'}
-              onChange={(e) => setSettings({ ...settings, max_reminders: e.target.value })}
-            />
-          </div>
+          <SettingRow
+            label="CC emails on approvals"
+            desc={descs['alert_cc_emails'] ?? 'Comma-separated emails CCed on all approval request emails'}
+            value={settings['alert_cc_emails'] ?? ''}
+            placeholder="finance@school.com, head@school.com"
+            width={380}
+            onChange={(v) => setSettings({ ...settings, alert_cc_emails: v })}
+          />
+          <SettingRow
+            label="Admin alert email"
+            desc={descs['admin_alert_email'] ?? 'Receives alerts when system errors occur'}
+            value={settings['admin_alert_email'] ?? ''}
+            placeholder="admin@gardenerschools.com"
+            type="email"
+            width={380}
+            onChange={(v) => setSettings({ ...settings, admin_alert_email: v })}
+          />
+          <SettingRow
+            label="Reminder after (days)"
+            desc={descs['reminder_days'] ?? 'Days to wait before sending approval reminder'}
+            value={settings['reminder_days'] ?? '3'}
+            type="number"
+            width={120}
+            onChange={(v) => setSettings({ ...settings, reminder_days: v })}
+          />
+          <SettingRow
+            label="Max reminders"
+            desc={descs['max_reminders'] ?? 'Maximum reminders per invoice before escalating'}
+            value={settings['max_reminders'] ?? '3'}
+            type="number"
+            width={120}
+            onChange={(v) => setSettings({ ...settings, max_reminders: v })}
+          />
         </div>
 
-        <div style={{ padding: '0 24px 24px' }}>
-          <button style={s.btnPrimary} disabled={saving} onClick={save}>
-            {saving ? 'Saving…' : 'Save Settings'}
+        <div style={{ padding: '0 26px 26px' }}>
+          <button className="btn" style={s.btnPrimary} disabled={saving} onClick={save}>
+            {saving ? 'Saving…' : 'Save settings →'}
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SettingRow({
+  label, desc, value, placeholder, type = 'text', width, onChange,
+}: {
+  label: string; desc: string; value: string; placeholder?: string;
+  type?: string; width: number; onChange: (v: string) => void;
+}) {
+  return (
+    <div style={s.settingRow}>
+      <div style={s.settingLabel}>
+        <div style={s.settingKey}>{label}</div>
+        <div style={s.settingDesc}>{desc}</div>
+      </div>
+      <input
+        style={{ ...s.input, width }}
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
     </div>
   );
 }
@@ -670,14 +699,14 @@ function AlertsTab() {
 interface FnStatus { name: string; label: string; schedule: string }
 
 const FUNCTIONS: FnStatus[] = [
-  { name: 'email-intake',       label: 'Email Intake',       schedule: 'Every 5 minutes (auto)' },
-  { name: 'reminder-scheduler', label: 'Reminder Scheduler', schedule: 'Daily at 08:00 UTC (auto)' },
-  { name: 'gemini-processor',   label: 'Gemini Processor',   schedule: 'On-demand (per invoice)' },
-  { name: 'send-approval',      label: 'Send Approval',      schedule: 'On-demand (per invoice)' },
-  { name: 'process-approval',   label: 'Process Approval',   schedule: 'On-demand (approver click)' },
-  { name: 'generate-csv',       label: 'Generate CSV',       schedule: 'On-demand (export page)' },
-  { name: 'sync-approvers',     label: 'Import M365 Approvers', schedule: 'Manual (Approvers tab)' },
-  { name: 'admin-actions',      label: 'Admin Actions',      schedule: 'On-demand (admin panel)' },
+  { name: 'email-intake',       label: 'Email intake',        schedule: 'Every 5 minutes' },
+  { name: 'reminder-scheduler', label: 'Reminder scheduler',  schedule: 'Daily · 08:00 UTC' },
+  { name: 'gemini-processor',   label: 'Gemini processor',    schedule: 'On-demand' },
+  { name: 'send-approval',      label: 'Send approval',       schedule: 'On-demand' },
+  { name: 'process-approval',   label: 'Process approval',    schedule: 'On-demand' },
+  { name: 'generate-csv',       label: 'Generate CSV',        schedule: 'On-demand' },
+  { name: 'sync-approvers',     label: 'Import M365 approvers', schedule: 'Manual' },
+  { name: 'admin-actions',      label: 'Admin actions',       schedule: 'On-demand' },
 ];
 
 function SystemTab() {
@@ -719,87 +748,80 @@ function SystemTab() {
 
   return (
     <div>
-      <div style={s.sectionHeader}>
-        <div>
-          <div style={s.sectionTitle}>System Health & Controls</div>
-          <div style={s.sectionSub}>Database stats and manual function triggers. Use these to test or recover from issues.</div>
-        </div>
-      </div>
+      <SectionHeader
+        title="System health & controls"
+        subtitle="Database stats and manual function triggers. Use these to test or recover from issues."
+      />
 
-      {/* Stats row */}
       {stats && (
         <div style={s.statsRow}>
-          <div style={s.statCard}>
-            <div style={s.statValue}>{stats.files}</div>
-            <div style={s.statLabel}>Invoice Files</div>
-          </div>
-          <div style={s.statCard}>
-            <div style={s.statValue}>{stats.pos}</div>
-            <div style={s.statLabel}>Purchase Orders</div>
-          </div>
-          <div style={s.statCard}>
-            <div style={s.statValue}>{stats.exports}</div>
-            <div style={s.statLabel}>Sage Exports</div>
-          </div>
+          <StatCard label="Invoice files" value={stats.files} />
+          <StatCard label="Purchase orders" value={stats.pos} />
+          <StatCard label="Sage exports" value={stats.exports} />
         </div>
       )}
 
-      {/* Azure AD fix notice */}
       <div style={s.warningBox}>
-        <div style={s.warningTitle}>⚠ Email Intake is returning errors</div>
+        <div style={s.warningKicker}>§ Setup Required</div>
+        <div style={s.warningTitle}>Email intake is returning errors</div>
         <div style={s.warningBody}>
           The <strong>email-intake</strong> and <strong>sync-approvers</strong> functions are failing because
           the Azure App Registration needs <strong>Application permissions</strong> (not just Delegated) for
-          Microsoft Graph. Follow these steps to fix it:
-          <ol style={{ marginTop: 8, paddingLeft: 20, lineHeight: '1.8' }}>
+          Microsoft Graph. Follow these steps to fix:
+          <ol style={s.warningList}>
             <li>Open <strong>Azure Portal → App Registrations → your app → API Permissions</strong></li>
             <li>Click <strong>Add a permission → Microsoft Graph → Application permissions</strong></li>
             <li>Add: <code style={s.code}>Mail.ReadWrite</code> and <code style={s.code}>User.Read.All</code></li>
             <li>Click <strong>Grant admin consent</strong> (requires Azure AD Global Admin)</li>
-            <li>Come back here and click <strong>Run</strong> next to Email Intake to test</li>
+            <li>Come back and click <strong>Run</strong> next to Email intake to test</li>
           </ol>
         </div>
       </div>
 
-      {/* Function cards */}
       <div style={s.card}>
         <table style={s.table}>
           <thead>
             <tr>
               <th style={s.th}>Function</th>
               <th style={s.th}>Schedule</th>
-              <th style={s.th}>Last Result</th>
-              <th style={s.th}>Actions</th>
+              <th style={s.th}>Last result</th>
+              <th style={{ ...s.th, textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {FUNCTIONS.map((fn) => (
-              <tr key={fn.name} style={s.row}>
-                <td style={s.td}><div style={s.name}>{fn.label}</div><div style={{ ...s.mono, fontSize: 11, color: '#999' }}>{fn.name}</div></td>
-                <td style={s.td}>{fn.schedule}</td>
+            {FUNCTIONS.map((fn, idx) => (
+              <tr key={fn.name} style={{ ...s.row, ...(idx % 2 === 1 ? s.rowAlt : {}) }}>
+                <td style={s.td}>
+                  <div style={s.name}>{fn.label}</div>
+                  <div style={{ ...s.mono, fontSize: 10.5, color: 'var(--ink-faint)', marginTop: 2 }}>
+                    {fn.name}
+                  </div>
+                </td>
+                <td style={{ ...s.td, ...s.mono, fontSize: 11.5 }}>{fn.schedule}</td>
                 <td style={s.td}>
                   {results[fn.name] ? (
                     <span style={{
-                      ...s.mono,
+                      fontFamily: 'var(--font-mono)',
                       fontSize: 11,
                       color: results[fn.name].startsWith('Error') || results[fn.name].startsWith('Failed')
-                        ? '#dc2626' : '#166534',
+                        ? 'var(--danger)' : 'var(--success)',
                     }}>
                       {results[fn.name].length > 120
                         ? results[fn.name].slice(0, 120) + '…'
                         : results[fn.name]}
                     </span>
                   ) : (
-                    <span style={{ color: '#bbb', fontSize: 12 }}>—</span>
+                    <span style={s.faint}>—</span>
                   )}
                 </td>
-                <td style={s.td}>
+                <td style={{ ...s.td, textAlign: 'right' }}>
                   <button
+                    className="btn"
                     style={s.btnSecondary}
                     disabled={triggering === fn.name}
                     onClick={() => trigger(fn.name)}
                   >
-                    {triggering === fn.name ? 'Running…' : 'Run Now'}
+                    {triggering === fn.name ? 'Running…' : 'Run now'}
                   </button>
                 </td>
               </tr>
@@ -811,57 +833,473 @@ function SystemTab() {
   );
 }
 
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={s.statCard}>
+      <div style={s.statLabel}>{label}</div>
+      <div style={s.statValue}>{value}</div>
+    </div>
+  );
+}
+
+function SectionHeader({
+  title, subtitle, actions, msg, msgType = 'success',
+}: {
+  title: string; subtitle: string;
+  actions?: React.ReactNode;
+  msg?: string;
+  msgType?: 'success' | 'error';
+}) {
+  return (
+    <div style={s.sectionHeader}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={s.sectionTitle}>{title}</div>
+        <div style={s.sectionSub}>{subtitle}</div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        {msg && (
+          <div style={{ ...s.toast, ...(msgType === 'error' ? s.toastError : {}) }}>
+            <span style={s.toastLabel}>{msgType === 'error' ? 'Error' : 'Done'}</span>
+            {msg}
+          </div>
+        )}
+        {actions}
+      </div>
+    </div>
+  );
+}
+
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s: Record<string, React.CSSProperties> = {
-  pageHeader:   { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 },
-  pageTitle:    { margin: 0, fontSize: 22, fontWeight: 700, color: '#1e3a5f' },
-  tabBar:       { display: 'flex', gap: 0, borderBottom: '2px solid #e9ecef', marginBottom: 24 },
-  tab:          { padding: '10px 24px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#6c757d', fontWeight: 500, borderBottom: '2px solid transparent', marginBottom: -2 },
-  tabActive:    { color: '#1e3a5f', borderBottom: '2px solid #1e3a5f', fontWeight: 700 },
-  content:      {},
-  loading:      { textAlign: 'center', padding: 40, color: '#888' },
-  sectionHeader:{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: 700, color: '#1e3a5f', marginBottom: 4 },
-  sectionSub:   { fontSize: 13, color: '#6c757d' },
-  card:         { background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'auto', marginBottom: 20 },
-  table:        { width: '100%', borderCollapse: 'collapse' },
-  th:           { padding: '10px 16px', background: '#f8f9fa', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6c757d', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e9ecef' },
-  row:          { transition: 'background 0.1s' },
-  td:           { padding: '10px 16px', fontSize: 13, borderBottom: '1px solid #f0f0f0', verticalAlign: 'middle' },
-  name:         { fontWeight: 600, color: '#212529' },
-  mono:         { fontFamily: 'monospace', fontSize: 12, color: '#495057' },
-  empty:        { textAlign: 'center', padding: 32, color: '#888', fontSize: 13 },
-  roleBadge:    { display: 'inline-block', padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' },
-  badgeAzure:   { display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 11, background: '#dbeafe', color: '#1e40af', fontWeight: 600 },
-  badgeManual:  { display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 11, background: '#f3e8ff', color: '#6b21a8', fontWeight: 600 },
-  statusDot:    { display: 'inline-block', width: 8, height: 8, borderRadius: '50%', marginRight: 6 },
-  toast:        { background: '#1e3a5f', color: '#fff', padding: '6px 14px', borderRadius: 6, fontSize: 13 },
-  toastError:   { background: '#dc2626' },
-  select:       { padding: '4px 8px', borderRadius: 4, border: '1px solid #dee2e6', fontSize: 13, marginRight: 6 },
-  btn:          { padding: '4px 12px', fontSize: 12, borderRadius: 4, cursor: 'pointer', border: '1px solid transparent' },
-  btnPrimary:   { padding: '8px 18px', fontSize: 13, borderRadius: 4, cursor: 'pointer', background: '#1e3a5f', color: '#fff', border: 'none', fontWeight: 600 },
-  btnSecondary: { padding: '4px 12px', fontSize: 12, borderRadius: 4, cursor: 'pointer', background: '#f8f9fa', color: '#495057', border: '1px solid #dee2e6' },
-  btnDanger:    { background: '#fff5f5', color: '#c0392b', border: '1px solid #f5c6cb' },
-  addForm:      { background: '#fff', borderRadius: 8, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e9ecef' },
-  addFormTitle: { fontSize: 14, fontWeight: 700, color: '#1e3a5f', marginBottom: 16 },
-  formGrid:     { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 },
-  formGroup:    { display: 'flex', flexDirection: 'column', gap: 4 },
-  label:        { fontSize: 12, fontWeight: 600, color: '#495057' },
-  roleHint:     { fontSize: 11, color: '#6c757d', marginTop: 4 },
-  toggleLabel:  { fontSize: 13, color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center' },
-  input:        { padding: '7px 10px', borderRadius: 4, border: '1px solid #dee2e6', fontSize: 13, outline: 'none' },
-  settingsGrid: { padding: 24, display: 'flex', flexDirection: 'column', gap: 28 },
-  settingRow:   { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 },
+  page: { display: 'flex', flexDirection: 'column', gap: 18 },
+
+  masthead: {
+    paddingBottom: 18,
+    borderBottom: '1px solid var(--line)',
+  },
+  kicker: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    fontSize: 11,
+    fontWeight: 600,
+    color: 'var(--accent-text)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.22em',
+    marginBottom: 14,
+  },
+  kickerRule: { width: 28, height: 1, background: 'var(--accent)' },
+  pageTitle: {
+    margin: 0,
+    fontFamily: 'var(--font-display)',
+    fontSize: 'clamp(36px, 4vw, 54px)',
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.025em',
+    lineHeight: 1.02,
+    fontVariationSettings: "'opsz' 144, 'SOFT' 40",
+  },
+  pageTitleEm: {
+    fontStyle: 'italic',
+    color: 'var(--accent)',
+    fontVariationSettings: "'opsz' 144, 'SOFT' 100",
+  },
+  subtitle: {
+    margin: '14px 0 0',
+    maxWidth: 620,
+    fontSize: 14.5,
+    lineHeight: 1.6,
+    color: 'var(--ink-muted)',
+  },
+
+  tabBar: {
+    display: 'flex',
+    gap: 4,
+    borderBottom: '1px solid var(--line)',
+    marginBottom: 8,
+  },
+  tab: {
+    position: 'relative',
+    padding: '14px 22px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'baseline',
+    gap: 10,
+    color: 'var(--ink-muted)',
+    transition: 'color 0.15s var(--ease)',
+  },
+  tabActive: {
+    color: 'var(--ink)',
+  },
+  tabNumber: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10.5,
+    color: 'var(--ink-faint)',
+    fontWeight: 500,
+    letterSpacing: '0.08em',
+  },
+  tabNumberActive: { color: 'var(--accent)' },
+  tabLabel: {
+    fontSize: 14,
+    fontWeight: 500,
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: -1,
+    left: 0,
+    right: 0,
+    height: 2,
+    background: 'var(--accent)',
+  },
+
+  content: {},
+
+  loading: {
+    textAlign: 'center',
+    padding: 60,
+    color: 'var(--ink-muted)',
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    fontSize: 15,
+  },
+
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: 16,
+    marginBottom: 16,
+    flexWrap: 'wrap',
+  },
+  sectionTitle: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 24,
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.02em',
+    marginBottom: 4,
+  },
+  sectionSub: {
+    fontSize: 13,
+    color: 'var(--ink-muted)',
+  },
+
+  card: {
+    background: 'var(--paper-bright)',
+    border: '1px solid var(--line)',
+    borderRadius: 10,
+    overflow: 'auto',
+    marginBottom: 18,
+  },
+  table: { width: '100%', borderCollapse: 'collapse' },
+  th: {
+    padding: '12px 16px',
+    textAlign: 'left',
+    fontSize: 10.5,
+    fontWeight: 600,
+    color: 'var(--ink-faint)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+    borderBottom: '1px solid var(--line-strong)',
+    background: 'var(--paper-bright)',
+  },
+  row: { transition: 'background 0.1s var(--ease)' },
+  rowAlt: { background: 'var(--paper)' },
+  td: {
+    padding: '12px 16px',
+    fontSize: 13,
+    borderBottom: '1px solid var(--line)',
+    verticalAlign: 'middle',
+    color: 'var(--ink-soft)',
+  },
+  name: { fontWeight: 500, color: 'var(--ink)' },
+  mono: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 12,
+    color: 'var(--ink-muted)',
+  },
+  faint: {
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    color: 'var(--ink-faint)',
+  },
+  empty: {
+    textAlign: 'center',
+    padding: 36,
+    color: 'var(--ink-muted)',
+    fontSize: 13,
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+  },
+
+  roleBadge: {
+    display: 'inline-block',
+    padding: '3px 10px',
+    borderRadius: 999,
+    fontSize: 10,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+  },
+  badgeAzure: {
+    display: 'inline-block',
+    padding: '3px 10px',
+    borderRadius: 999,
+    fontSize: 10,
+    background: 'var(--info-soft)',
+    color: 'var(--info)',
+    border: '1px solid rgba(45, 85, 114, 0.25)',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.12em',
+  },
+  badgeManual: {
+    display: 'inline-block',
+    padding: '3px 10px',
+    borderRadius: 999,
+    fontSize: 10,
+    background: 'transparent',
+    color: 'var(--ink-muted)',
+    border: '1px dashed var(--line-strong)',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.12em',
+  },
+  statusDot: {
+    display: 'inline-block',
+    width: 7,
+    height: 7,
+    borderRadius: '50%',
+  },
+
+  toast: {
+    display: 'inline-flex',
+    alignItems: 'baseline',
+    gap: 10,
+    background: 'var(--ink)',
+    color: 'var(--paper)',
+    padding: '8px 14px',
+    borderRadius: 7,
+    fontSize: 12.5,
+  },
+  toastError: {
+    background: 'var(--danger)',
+  },
+  toastLabel: {
+    fontWeight: 700,
+    fontSize: 9.5,
+    letterSpacing: '0.18em',
+    textTransform: 'uppercase',
+    opacity: 0.8,
+  },
+
+  selectSm: {
+    padding: '5px 10px',
+    borderRadius: 6,
+    border: '1px solid var(--line-strong)',
+    fontSize: 12,
+    background: 'var(--paper)',
+    color: 'var(--ink-soft)',
+  },
+
+  btnPrimary: {
+    padding: '9px 18px',
+    fontSize: 13,
+    borderRadius: 7,
+    background: 'var(--ink)',
+    color: 'var(--paper)',
+    border: '1px solid var(--ink)',
+    fontWeight: 500,
+  },
+  btnSecondary: {
+    padding: '7px 14px',
+    fontSize: 12,
+    borderRadius: 6,
+    background: 'transparent',
+    color: 'var(--ink-soft)',
+    border: '1px solid var(--line-strong)',
+    fontWeight: 500,
+  },
+  btnDanger: {
+    padding: '7px 14px',
+    fontSize: 12,
+    borderRadius: 6,
+    background: 'var(--danger-soft)',
+    color: 'var(--danger)',
+    border: '1px solid rgba(160, 49, 53, 0.25)',
+    fontWeight: 500,
+  },
+
+  addForm: {
+    background: 'var(--paper-bright)',
+    border: '1px solid var(--line)',
+    borderRadius: 12,
+    padding: '22px 24px',
+    marginBottom: 18,
+  },
+  addFormKicker: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10.5,
+    color: 'var(--accent)',
+    fontWeight: 500,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  addFormTitle: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 20,
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.015em',
+    marginBottom: 4,
+  },
+  addFormSub: {
+    fontSize: 12.5,
+    color: 'var(--ink-muted)',
+  },
+  formGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: 16,
+    marginBottom: 16,
+  },
+  formGroup: { display: 'flex', flexDirection: 'column', gap: 5 },
+  label: {
+    fontSize: 10.5,
+    fontWeight: 600,
+    color: 'var(--ink-faint)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+  },
+  roleHint: {
+    fontSize: 11,
+    color: 'var(--ink-muted)',
+    marginTop: 4,
+    fontStyle: 'italic',
+    fontFamily: 'var(--font-display)',
+  },
+  toggleLabel: {
+    fontSize: 12,
+    color: 'var(--ink-soft)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  input: {
+    padding: '8px 12px',
+    borderRadius: 7,
+    border: '1px solid var(--line-strong)',
+    fontSize: 13,
+    background: 'var(--paper)',
+    color: 'var(--ink)',
+    outline: 'none',
+  },
+
+  settingsGrid: {
+    padding: 26,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 28,
+  },
+  settingRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 24,
+    paddingBottom: 24,
+    borderBottom: '1px dashed var(--line-strong)',
+  },
   settingLabel: { flex: 1 },
-  settingKey:   { fontSize: 14, fontWeight: 600, color: '#212529', marginBottom: 4 },
-  settingDesc:  { fontSize: 12, color: '#6c757d' },
-  statsRow:     { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 },
-  statCard:     { background: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', textAlign: 'center' },
-  statValue:    { fontSize: 32, fontWeight: 700, color: '#1e3a5f' },
-  statLabel:    { fontSize: 12, color: '#6c757d', marginTop: 4 },
-  warningBox:   { background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: 20, marginBottom: 20 },
-  warningTitle: { fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 8 },
-  warningBody:  { fontSize: 13, color: '#78350f', lineHeight: 1.6 },
-  code:         { background: '#fef3c7', padding: '1px 6px', borderRadius: 3, fontFamily: 'monospace', fontSize: 12 },
+  settingKey: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 17,
+    fontWeight: 500,
+    color: 'var(--ink)',
+    letterSpacing: '-0.01em',
+    marginBottom: 4,
+  },
+  settingDesc: {
+    fontSize: 12.5,
+    color: 'var(--ink-muted)',
+    lineHeight: 1.5,
+  },
+
+  statsRow: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: 14,
+    marginBottom: 18,
+  },
+  statCard: {
+    background: 'var(--paper-bright)',
+    border: '1px solid var(--line)',
+    borderRadius: 10,
+    padding: '22px 24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+  },
+  statLabel: {
+    fontSize: 10.5,
+    color: 'var(--ink-faint)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.18em',
+    fontWeight: 600,
+  },
+  statValue: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 40,
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.03em',
+    lineHeight: 1,
+    fontVariantNumeric: 'tabular-nums',
+    fontVariationSettings: "'opsz' 144, 'SOFT' 40",
+  },
+
+  warningBox: {
+    background: 'var(--warning-soft)',
+    border: '1px solid rgba(154, 107, 30, 0.3)',
+    borderRadius: 10,
+    padding: '20px 22px',
+    marginBottom: 18,
+  },
+  warningKicker: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10.5,
+    color: 'var(--warning)',
+    fontWeight: 600,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  warningTitle: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 18,
+    fontWeight: 500,
+    color: 'var(--warning)',
+    marginBottom: 10,
+    letterSpacing: '-0.01em',
+  },
+  warningBody: {
+    fontSize: 13,
+    color: 'var(--warning)',
+    lineHeight: 1.65,
+  },
+  warningList: {
+    marginTop: 10,
+    paddingLeft: 20,
+    lineHeight: 1.8,
+  },
+  code: {
+    background: 'rgba(154, 107, 30, 0.12)',
+    padding: '1px 7px',
+    borderRadius: 4,
+    fontFamily: 'var(--font-mono)',
+    fontSize: 11.5,
+  },
 };

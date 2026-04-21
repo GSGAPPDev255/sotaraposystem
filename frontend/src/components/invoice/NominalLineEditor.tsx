@@ -15,7 +15,11 @@ export default function NominalLineEditor({
       <label style={styles.label}>{label}</label>
       <input
         type={type}
-        style={styles.input}
+        style={{
+          ...styles.input,
+          ...(type === 'number' ? { fontFamily: 'var(--font-mono)', fontSize: 12.5 } : {}),
+          ...(readOnly ? styles.inputReadOnly : {}),
+        }}
         value={String(value[key] ?? '')}
         readOnly={readOnly}
         disabled={readOnly}
@@ -26,7 +30,10 @@ export default function NominalLineEditor({
 
   return (
     <div style={styles.card}>
-      <h4 style={styles.heading}>Nominal Line {lineNumber}</h4>
+      <div style={styles.header}>
+        <span style={styles.lineTag}>Line {lineNumber.toString().padStart(2, '0')}</span>
+        <span style={styles.rule} />
+      </div>
       <div style={styles.grid}>
         {f('transaction_value', 'Transaction Value', 'number')}
         {f('nominal_account_number', 'Account Number')}
@@ -40,13 +47,50 @@ export default function NominalLineEditor({
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  card: { border: '1px solid #e9ecef', borderRadius: 6, padding: 14, marginBottom: 12 },
-  heading: { margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#495057' },
-  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' },
-  field: { display: 'flex', flexDirection: 'column', gap: 3 },
-  label: { fontSize: 12, color: '#666', fontWeight: 500 },
+  card: {
+    border: '1px dashed var(--line-strong)',
+    borderRadius: 8,
+    padding: '16px 18px',
+    marginBottom: 12,
+    background: 'var(--paper)',
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  lineTag: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10.5,
+    color: 'var(--accent)',
+    fontWeight: 600,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+  },
+  rule: { flex: 1, height: 1, background: 'var(--line)' },
+  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 18px' },
+  field: { display: 'flex', flexDirection: 'column', gap: 5 },
+  label: {
+    fontSize: 10,
+    color: 'var(--ink-faint)',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+  },
   input: {
-    padding: '6px 8px', border: '1px solid #ced4da', borderRadius: 4,
-    fontSize: 13, outline: 'none',
+    padding: '8px 11px',
+    border: '1px solid var(--line-strong)',
+    borderRadius: 6,
+    fontSize: 13,
+    background: 'var(--paper-bright)',
+    color: 'var(--ink)',
+    outline: 'none',
+    transition: 'border-color 0.15s var(--ease)',
+  },
+  inputReadOnly: {
+    background: 'transparent',
+    color: 'var(--ink-soft)',
+    cursor: 'default',
   },
 };

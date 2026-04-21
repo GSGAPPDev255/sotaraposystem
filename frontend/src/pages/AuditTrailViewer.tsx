@@ -20,108 +20,156 @@ export default function AuditTrailViewer() {
 
   const poData = po as PurchaseOrder;
 
+  const formatMoney = (v: number | null) =>
+    v != null ? `£${Number(v).toLocaleString('en-GB', { minimumFractionDigits: 2 })}` : '—';
+
   return (
-    <div>
-      <div style={styles.header}>
-        <button style={styles.back} onClick={() => navigate(`/invoices/${id}`)}>← Back to Invoice</button>
-        <h1 style={styles.title}>Audit Trail</h1>
-        <StatusBadge status={poData.status} />
+    <div style={styles.page}>
+      {/* Masthead */}
+      <div style={styles.masthead} className="animate-rise">
+        <button style={styles.back} onClick={() => navigate(`/invoices/${id}`)}>
+          <span style={styles.backArrow}>←</span> Back to invoice
+        </button>
+        <div style={styles.kicker}>
+          <span style={styles.kickerRule} /> Audit Trail · Immutable
+        </div>
+        <div style={styles.titleRow}>
+          <h1 style={styles.title}>
+            The <em style={styles.titleEm}>full record</em>.
+          </h1>
+          <StatusBadge status={poData.status} />
+        </div>
+        <p style={styles.subtitle}>
+          Every event on this invoice, in order. Nothing can be deleted or edited.
+        </p>
       </div>
 
-      {/* Invoice summary */}
-      <div style={styles.summary}>
-        <div style={styles.summaryItem}>
-          <span style={styles.summaryKey}>Supplier</span>
-          <span style={styles.summaryVal}>{poData.supplier_name ?? '—'}</span>
-        </div>
-        <div style={styles.summaryItem}>
-          <span style={styles.summaryKey}>Invoice Ref</span>
-          <span style={styles.summaryVal}>{poData.transaction_reference ?? '—'}</span>
-        </div>
-        <div style={styles.summaryItem}>
-          <span style={styles.summaryKey}>Invoice Date</span>
-          <span style={styles.summaryVal}>
-            {poData.transaction_date ? format(new Date(poData.transaction_date), 'dd/MM/yyyy') : '—'}
-          </span>
-        </div>
-        <div style={styles.summaryItem}>
-          <span style={styles.summaryKey}>Gross Amount</span>
-          <span style={{ ...styles.summaryVal, fontWeight: 700, color: '#1e3a5f', fontSize: 16 }}>
-            {poData.gross_amount != null
-              ? `£${Number(poData.gross_amount).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`
-              : '—'}
-          </span>
-        </div>
-        <div style={styles.summaryItem}>
-          <span style={styles.summaryKey}>Created</span>
-          <span style={styles.summaryVal}>{format(new Date(poData.created_at), 'dd/MM/yyyy HH:mm')}</span>
-        </div>
-        <div style={styles.summaryItem}>
-          <span style={styles.summaryKey}>Last Updated</span>
-          <span style={styles.summaryVal}>{format(new Date(poData.updated_at), 'dd/MM/yyyy HH:mm')}</span>
-        </div>
+      {/* Summary strip */}
+      <div style={styles.summary} className="animate-rise delay-1">
+        <SummaryItem label="Supplier" value={poData.supplier_name ?? '—'} />
+        <div style={styles.summaryRule} />
+        <SummaryItem
+          label="Invoice Ref"
+          value={poData.transaction_reference ?? '—'}
+          mono
+        />
+        <div style={styles.summaryRule} />
+        <SummaryItem
+          label="Invoice Date"
+          value={poData.transaction_date ? format(new Date(poData.transaction_date), 'dd MMM yyyy') : '—'}
+          mono
+        />
+        <div style={styles.summaryRule} />
+        <SummaryItem
+          label="Gross Amount"
+          value={formatMoney(poData.gross_amount)}
+          highlight
+        />
+        <div style={styles.summaryRule} />
+        <SummaryItem
+          label="Created"
+          value={format(new Date(poData.created_at), 'dd MMM · HH:mm')}
+          mono
+          small
+        />
+        <div style={styles.summaryRule} />
+        <SummaryItem
+          label="Last Updated"
+          value={format(new Date(poData.updated_at), 'dd MMM · HH:mm')}
+          mono
+          small
+        />
       </div>
 
       <div style={styles.layout}>
-        <div style={styles.timelinePanel}>
-          <div style={styles.section}>
-            <h2 style={styles.sectionTitle}>Event History ({auditLog.length} events)</h2>
+        {/* Timeline */}
+        <div style={styles.timelinePanel} className="animate-rise delay-2">
+          <div style={styles.panel}>
+            <div style={styles.panelHeader}>
+              <span style={styles.panelNumber}>§</span>
+              <h2 style={styles.panelTitle}>
+                Event <em style={styles.panelTitleEm}>history</em>
+              </h2>
+              <span style={styles.panelCount}>
+                {auditLog.length} {auditLog.length === 1 ? 'event' : 'events'}
+              </span>
+            </div>
             <AuditTimeline entries={auditLog} />
           </div>
         </div>
 
-        <div style={styles.detailPanel}>
-          {/* OCR Extraction */}
+        {/* Details */}
+        <div style={styles.detailPanel} className="animate-rise delay-3">
           {ocr && (
-            <div style={styles.section}>
-              <h2 style={styles.sectionTitle}>AI Extraction Record</h2>
+            <div style={styles.panel}>
+              <div style={styles.panelHeader}>
+                <span style={styles.panelNumber}>01</span>
+                <h2 style={styles.panelTitle}>AI extraction</h2>
+              </div>
               <OcrComparisonPanel ocr={ocr} po={poData} />
               <div style={styles.ocrMeta}>
-                <span>Model: {ocr.gemini_model}</span>
-                <span>Processing time: {ocr.processing_ms}ms</span>
-                <span>Extracted: {format(new Date(ocr.created_at), 'dd/MM/yyyy HH:mm:ss')}</span>
+                <span style={styles.ocrMetaKey}>Model</span>
+                <span style={styles.ocrMetaVal}>{ocr.gemini_model}</span>
+                <span style={styles.ocrMetaSep}>·</span>
+                <span style={styles.ocrMetaKey}>Time</span>
+                <span style={styles.ocrMetaVal}>{ocr.processing_ms}ms</span>
+                <span style={styles.ocrMetaSep}>·</span>
+                <span style={styles.ocrMetaKey}>Extracted</span>
+                <span style={styles.ocrMetaVal}>
+                  {format(new Date(ocr.created_at), 'dd MMM yyyy HH:mm:ss')}
+                </span>
               </div>
             </div>
           )}
 
-          {/* Approval outcome */}
           {(poData.approved_at || poData.rejected_reason) && (
-            <div style={styles.section}>
-              <h2 style={styles.sectionTitle}>Approval Outcome</h2>
-              <table style={styles.detailTable}>
-                <tbody>
-                  {poData.approved_at && (
-                    <tr>
-                      <td style={styles.detailKey}>Approved at</td>
-                      <td style={styles.detailVal}>{format(new Date(poData.approved_at), 'dd/MM/yyyy HH:mm')}</td>
-                    </tr>
-                  )}
-                  {poData.approver_comments && (
-                    <tr>
-                      <td style={styles.detailKey}>Approver comments</td>
-                      <td style={styles.detailVal}>{poData.approver_comments}</td>
-                    </tr>
-                  )}
-                  {poData.rejected_reason && (
-                    <tr>
-                      <td style={styles.detailKey}>Rejection reason</td>
-                      <td style={{ ...styles.detailVal, color: '#842029' }}>{poData.rejected_reason}</td>
-                    </tr>
-                  )}
-                  {poData.forwarded_reason && (
-                    <tr>
-                      <td style={styles.detailKey}>Forwarded reason</td>
-                      <td style={styles.detailVal}>{poData.forwarded_reason}</td>
-                    </tr>
-                  )}
-                  {poData.exported_at && (
-                    <tr>
-                      <td style={styles.detailKey}>Exported at</td>
-                      <td style={styles.detailVal}>{format(new Date(poData.exported_at), 'dd/MM/yyyy HH:mm')}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div style={styles.panel}>
+              <div style={styles.panelHeader}>
+                <span style={styles.panelNumber}>02</span>
+                <h2 style={styles.panelTitle}>
+                  Approval <em style={styles.panelTitleEm}>outcome</em>
+                </h2>
+              </div>
+              <dl style={styles.dl}>
+                {poData.approved_at && (
+                  <>
+                    <dt style={styles.dt}>Approved at</dt>
+                    <dd style={styles.dd}>
+                      {format(new Date(poData.approved_at), 'dd MMM yyyy · HH:mm')}
+                    </dd>
+                  </>
+                )}
+                {poData.approver_comments && (
+                  <>
+                    <dt style={styles.dt}>Approver comments</dt>
+                    <dd style={{ ...styles.dd, ...styles.ddQuote }}>
+                      {poData.approver_comments}
+                    </dd>
+                  </>
+                )}
+                {poData.rejected_reason && (
+                  <>
+                    <dt style={styles.dt}>Rejection reason</dt>
+                    <dd style={{ ...styles.dd, color: 'var(--danger)', ...styles.ddQuote }}>
+                      {poData.rejected_reason}
+                    </dd>
+                  </>
+                )}
+                {poData.forwarded_reason && (
+                  <>
+                    <dt style={styles.dt}>Forwarded reason</dt>
+                    <dd style={{ ...styles.dd, ...styles.ddQuote }}>{poData.forwarded_reason}</dd>
+                  </>
+                )}
+                {poData.exported_at && (
+                  <>
+                    <dt style={styles.dt}>Exported at</dt>
+                    <dd style={styles.dd}>
+                      {format(new Date(poData.exported_at), 'dd MMM yyyy · HH:mm')}
+                    </dd>
+                  </>
+                )}
+              </dl>
             </div>
           )}
         </div>
@@ -130,29 +178,238 @@ export default function AuditTrailViewer() {
   );
 }
 
+function SummaryItem({
+  label, value, mono, small, highlight,
+}: {
+  label: string; value: string; mono?: boolean; small?: boolean; highlight?: boolean;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+      <span style={{
+        fontSize: 10,
+        color: 'var(--ink-faint)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.18em',
+        fontWeight: 600,
+      }}>
+        {label}
+      </span>
+      <span style={{
+        fontSize: small ? 12 : highlight ? 18 : 14,
+        fontWeight: highlight ? 500 : 500,
+        color: highlight ? 'var(--accent)' : 'var(--ink)',
+        fontFamily: highlight
+          ? 'var(--font-display)'
+          : mono
+          ? 'var(--font-mono)'
+          : 'inherit',
+        letterSpacing: highlight ? '-0.015em' : '0',
+        fontVariantNumeric: mono || highlight ? 'tabular-nums' : undefined,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
 const styles: Record<string, React.CSSProperties> = {
-  header: { display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, flexWrap: 'wrap' },
-  back: { background: 'none', border: 'none', cursor: 'pointer', color: '#1e3a5f', fontSize: 14 },
-  title: { margin: 0, fontSize: 22, fontWeight: 700, color: '#1e3a5f', flex: 1 },
+  page: { display: 'flex', flexDirection: 'column', gap: 18 },
+  masthead: {
+    paddingBottom: 18,
+    borderBottom: '1px solid var(--line)',
+  },
+  back: {
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    cursor: 'pointer',
+    color: 'var(--ink-muted)',
+    fontSize: 12,
+    fontWeight: 500,
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backArrow: { color: 'var(--accent)' },
+  kicker: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    fontSize: 11,
+    fontWeight: 600,
+    color: 'var(--accent-text)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.22em',
+    marginBottom: 12,
+  },
+  kickerRule: { width: 28, height: 1, background: 'var(--accent)' },
+  titleRow: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 20,
+    flexWrap: 'wrap',
+  },
+  title: {
+    margin: 0,
+    fontFamily: 'var(--font-display)',
+    fontSize: 'clamp(36px, 4vw, 52px)',
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.025em',
+    lineHeight: 1.02,
+    fontVariationSettings: "'opsz' 144, 'SOFT' 40",
+  },
+  titleEm: {
+    fontStyle: 'italic',
+    color: 'var(--accent)',
+    fontVariationSettings: "'opsz' 144, 'SOFT' 100",
+  },
+  subtitle: {
+    margin: '14px 0 0',
+    maxWidth: 620,
+    fontSize: 14.5,
+    lineHeight: 1.6,
+    color: 'var(--ink-muted)',
+    fontStyle: 'italic',
+    fontFamily: 'var(--font-display)',
+  },
   summary: {
-    background: '#fff', borderRadius: 8, padding: '16px 20px', marginBottom: 16,
-    display: 'flex', flexWrap: 'wrap', gap: '12px 32px', border: '1px solid #e9ecef',
+    display: 'flex',
+    alignItems: 'stretch',
+    gap: 20,
+    padding: '16px 22px',
+    background: 'var(--paper-bright)',
+    border: '1px solid var(--line)',
+    borderRadius: 10,
+    flexWrap: 'wrap',
   },
-  summaryItem: { display: 'flex', flexDirection: 'column', gap: 2 },
-  summaryKey: { fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 },
-  summaryVal: { fontSize: 14, fontWeight: 500, color: '#333' },
-  layout: { display: 'flex', gap: 16 },
-  timelinePanel: { flex: 1.2, minWidth: 0 },
-  detailPanel: { flex: 1, minWidth: 0 },
-  section: { background: '#fff', borderRadius: 8, padding: 20, marginBottom: 12, border: '1px solid #e9ecef' },
-  sectionTitle: { margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#1e3a5f' },
+  summaryRule: {
+    width: 1,
+    background: 'var(--line)',
+    alignSelf: 'stretch',
+  },
+  layout: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 1fr)',
+    gap: 18,
+  },
+  timelinePanel: { minWidth: 0 },
+  detailPanel: { minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 },
+  panel: {
+    background: 'var(--paper-bright)',
+    border: '1px solid var(--line)',
+    borderRadius: 10,
+    padding: '22px 24px',
+    marginBottom: 14,
+  },
+  panelHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 20,
+  },
+  panelNumber: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 11,
+    color: 'var(--accent)',
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+  },
+  panelTitle: {
+    margin: 0,
+    fontFamily: 'var(--font-display)',
+    fontSize: 22,
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.015em',
+    flex: 1,
+  },
+  panelTitleEm: {
+    fontStyle: 'italic',
+    color: 'var(--accent)',
+    fontVariationSettings: "'opsz' 144, 'SOFT' 100",
+  },
+  panelCount: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10.5,
+    color: 'var(--ink-faint)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+    fontWeight: 500,
+  },
   ocrMeta: {
-    display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 8,
-    fontSize: 12, color: '#888', background: '#f8f9fa', padding: '8px 12px', borderRadius: 4,
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    padding: '10px 14px',
+    background: 'var(--paper)',
+    border: '1px dashed var(--line-strong)',
+    borderRadius: 7,
+    fontSize: 11,
   },
-  detailTable: { width: '100%', borderCollapse: 'collapse' },
-  detailKey: { padding: '8px 12px', fontSize: 13, color: '#666', fontWeight: 500, width: '40%', borderBottom: '1px solid #f0f0f0', verticalAlign: 'top' },
-  detailVal: { padding: '8px 12px', fontSize: 13, color: '#333', borderBottom: '1px solid #f0f0f0' },
-  loading: { padding: 40, textAlign: 'center', color: '#888' },
-  error: { padding: 16, background: '#f8d7da', color: '#842029', borderRadius: 8 },
+  ocrMetaKey: {
+    color: 'var(--ink-faint)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+    fontWeight: 600,
+  },
+  ocrMetaVal: {
+    fontFamily: 'var(--font-mono)',
+    color: 'var(--ink-soft)',
+    fontSize: 11.5,
+  },
+  ocrMetaSep: { color: 'var(--ink-faint)' },
+  dl: {
+    margin: 0,
+    display: 'grid',
+    gridTemplateColumns: '160px 1fr',
+    gap: '12px 20px',
+  },
+  dt: {
+    fontSize: 10.5,
+    color: 'var(--ink-faint)',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+    paddingTop: 2,
+  },
+  dd: {
+    margin: 0,
+    fontSize: 13.5,
+    color: 'var(--ink)',
+    lineHeight: 1.5,
+    fontFamily: 'var(--font-mono)',
+  },
+  ddQuote: {
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    fontSize: 14,
+    color: 'var(--ink-soft)',
+    paddingLeft: 14,
+    borderLeft: '2px solid var(--line-strong)',
+  },
+  loading: {
+    padding: 80,
+    textAlign: 'center',
+    color: 'var(--ink-muted)',
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    fontSize: 16,
+  },
+  error: {
+    padding: 16,
+    background: 'var(--danger-soft)',
+    color: 'var(--danger)',
+    borderRadius: 8,
+    border: '1px solid rgba(160, 49, 53, 0.25)',
+  },
 };

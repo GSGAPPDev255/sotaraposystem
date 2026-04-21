@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useInvoice, useNominalLines, useVatLines, useOcrExtraction } from '../hooks/useInvoices';
 import { useSubmitApprovalDecision, useApprovers } from '../hooks/useApprovals';
 import OcrComparisonPanel from '../components/invoice/OcrComparisonPanel';
 import StatusBadge from '../components/shared/StatusBadge';
 import { getInvoiceSignedUrl } from '../lib/auth';
-import type { PurchaseOrder, NominalLine, VatLine } from '../lib/supabase';
+import type { PurchaseOrder, NominalLine } from '../lib/supabase';
 
 export default function ApproverView() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
 
   const { data: po, isLoading } = useInvoice(id!);
   const { data: nominalLines = [] } = useNominalLines(id!);
-  const { data: vatLines = [] } = useVatLines(id!);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { data: _vatLines = [] } = useVatLines(id!);
   const { data: ocr } = useOcrExtraction(id!);
   const { data: approvers = [] } = useApprovers();
   const submitDecision = useSubmitApprovalDecision();
@@ -44,7 +44,7 @@ export default function ApproverView() {
   const handleSubmit = async () => {
     if (!action) return;
     if (action === 'reject' && !comment.trim()) {
-      setError('A comment is required when rejecting.');
+      setError('A reason is required when rejecting.');
       return;
     }
     if (action === 'forward' && !forwardTo) {
@@ -70,22 +70,22 @@ export default function ApproverView() {
   };
 
   if (submitted) {
+    const word = action === 'approve' ? 'Approved' : action === 'reject' ? 'Rejected' : 'Forwarded';
+    const body =
+      action === 'approve'
+        ? 'Finance has been notified of your approval.'
+        : action === 'reject'
+        ? 'Finance has been notified with your reason.'
+        : 'The invoice has been forwarded to the selected approver.';
+
     return (
       <div style={styles.successPage}>
-        <div style={styles.successCard}>
-          <div style={styles.successIcon}>
-            {action === 'approve' ? '✅' : action === 'reject' ? '❌' : '➡'}
-          </div>
-          <h2 style={styles.successTitle}>
-            {action === 'approve' ? 'Invoice Approved' : action === 'reject' ? 'Invoice Rejected' : 'Invoice Forwarded'}
-          </h2>
-          <p style={styles.successText}>
-            {action === 'approve'
-              ? 'Thank you. Finance has been notified of your approval.'
-              : action === 'reject'
-              ? 'Thank you. Finance has been notified with your reason.'
-              : 'The invoice has been forwarded to the selected approver.'}
-          </p>
+        <div style={styles.successCard} className="animate-rise">
+          <div style={styles.successKicker}>§ Complete</div>
+          <h2 style={styles.successTitle}>Invoice <em style={styles.successEm}>{word.toLowerCase()}</em>.</h2>
+          <p style={styles.successText}>{body}</p>
+          <div style={styles.successRule} />
+          <div style={styles.successFoot}>You may close this window.</div>
         </div>
       </div>
     );
@@ -96,100 +96,120 @@ export default function ApproverView() {
 
   return (
     <div style={styles.page}>
-      {/* Header */}
-      <div style={styles.header}>
-        <div>
-          <h1 style={styles.title}>Invoice Approval</h1>
-          <p style={styles.subtitle}>Review the invoice details below. You are confirming spend approval only.</p>
+      {/* Masthead */}
+      <div style={styles.masthead} className="animate-rise">
+        <div style={styles.kicker}>
+          <span style={styles.kickerRule} /> Approval Request
         </div>
-        <StatusBadge status={poData.status} />
+        <div style={styles.titleRow}>
+          <h1 style={styles.title}>
+            Your <em style={styles.titleEm}>decision</em>, please.
+          </h1>
+          <StatusBadge status={poData.status} />
+        </div>
+        <p style={styles.subtitle}>
+          Review the invoice details below. You are confirming spend approval — not data accuracy.
+        </p>
       </div>
 
-      <div style={styles.readOnlyNotice}>
-        All invoice data below is read-only. Finance has validated all details.
+      <div style={styles.notice} className="animate-rise delay-1">
+        <span style={styles.noticeLabel}>§ Read-only</span>
+        <span>Finance has validated all details. This page shows them for confirmation.</span>
       </div>
 
       <div style={styles.layout}>
         {/* Left: PDF */}
-        <div style={styles.pdfPanel}>
-          {pdfUrl ? (
-            <iframe src={pdfUrl} style={styles.pdfFrame} title="Invoice" />
-          ) : (
-            <div style={styles.noPdf}>No document available</div>
-          )}
+        <div style={styles.pdfPanel} className="animate-rise delay-1">
+          <div style={styles.pdfLabel}>§ Document</div>
+          <div style={styles.pdfFrameWrap}>
+            {pdfUrl ? (
+              <iframe src={pdfUrl} style={styles.pdfFrame} title="Invoice" />
+            ) : (
+              <div style={styles.noPdf}>
+                <div style={styles.noPdfMark}>§</div>
+                <div>No document available</div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right: Summary + Actions */}
-        <div style={styles.rightPanel}>
-          {/* Invoice Summary */}
-          <section style={styles.section}>
-            <h3 style={styles.sectionTitle}>Invoice Summary</h3>
-            <table style={styles.summaryTable}>
-              <tbody>
-                <tr>
-                  <td style={styles.summaryKey}>Supplier</td>
-                  <td style={styles.summaryVal}>{poData.supplier_name ?? '—'}</td>
-                </tr>
-                <tr>
-                  <td style={styles.summaryKey}>Account Number</td>
-                  <td style={styles.summaryVal}>{poData.account_number ?? '—'}</td>
-                </tr>
-                <tr>
-                  <td style={styles.summaryKey}>Invoice Reference</td>
-                  <td style={styles.summaryVal}>{poData.transaction_reference ?? '—'}</td>
-                </tr>
-                <tr>
-                  <td style={styles.summaryKey}>Invoice Date</td>
-                  <td style={styles.summaryVal}>
-                    {poData.transaction_date ? format(new Date(poData.transaction_date), 'dd/MM/yyyy') : '—'}
-                  </td>
-                </tr>
-                <tr>
-                  <td style={styles.summaryKey}>Description</td>
-                  <td style={styles.summaryVal}>{poData.description ?? '—'}</td>
-                </tr>
-                <tr style={{ background: '#f8f9fa' }}>
-                  <td style={styles.summaryKey}>Net Amount</td>
-                  <td style={styles.summaryVal}>{formatAmount(poData.net_amount)}</td>
-                </tr>
-                <tr style={{ background: '#f8f9fa' }}>
-                  <td style={styles.summaryKey}>VAT Amount</td>
-                  <td style={styles.summaryVal}>{formatAmount(poData.vat_amount)}</td>
-                </tr>
-                <tr style={{ background: '#e8f4fd' }}>
-                  <td style={{ ...styles.summaryKey, fontWeight: 700 }}>GROSS AMOUNT</td>
-                  <td style={{ ...styles.summaryVal, fontWeight: 700, fontSize: 18, color: '#1e3a5f' }}>
-                    {formatAmount(poData.gross_amount)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <div style={styles.rightPanel} className="animate-rise delay-2">
+          {/* Hero summary card */}
+          <section style={styles.hero}>
+            <div style={styles.heroTop}>
+              <div style={styles.heroKicker}>§ Invoice Summary</div>
+              <div style={styles.heroSupplier}>{poData.supplier_name ?? '—'}</div>
+              <div style={styles.heroRef}>
+                {poData.transaction_reference ?? '—'}
+                {poData.transaction_date && (
+                  <>
+                    <span style={styles.heroDot}>·</span>
+                    {format(new Date(poData.transaction_date), 'dd MMM yyyy')}
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div style={styles.heroGross}>
+              <div style={styles.heroGrossLabel}>Gross Amount</div>
+              <div style={styles.heroGrossVal}>{formatAmount(poData.gross_amount)}</div>
+            </div>
+
+            <div style={styles.heroSplit}>
+              <div style={styles.heroSplitItem}>
+                <span style={styles.heroSplitLabel}>Net</span>
+                <span style={styles.heroSplitVal}>{formatAmount(poData.net_amount)}</span>
+              </div>
+              <div style={styles.heroSplitRule} />
+              <div style={styles.heroSplitItem}>
+                <span style={styles.heroSplitLabel}>VAT</span>
+                <span style={styles.heroSplitVal}>{formatAmount(poData.vat_amount)}</span>
+              </div>
+              <div style={styles.heroSplitRule} />
+              <div style={styles.heroSplitItem}>
+                <span style={styles.heroSplitLabel}>Account</span>
+                <span style={styles.heroSplitVal}>{poData.account_number ?? '—'}</span>
+              </div>
+            </div>
+
+            {poData.description && (
+              <div style={styles.heroDesc}>
+                <div style={styles.heroDescLabel}>Description</div>
+                <div style={styles.heroDescText}>{poData.description}</div>
+              </div>
+            )}
           </section>
 
           {/* Finance Notes */}
           {poData.finance_notes && (
             <section style={styles.section}>
-              <h3 style={styles.sectionTitle}>Finance Notes</h3>
-              <p style={{ margin: 0, fontSize: 14, color: '#555', lineHeight: 1.6 }}>
+              <div style={styles.sectionHeader}>
+                <span style={styles.sectionNumber}>01</span>
+                <h3 style={styles.sectionTitle}>Notes from finance</h3>
+                <span style={styles.sectionRule} />
+              </div>
+              <blockquote style={styles.notes}>
                 {poData.finance_notes}
-              </p>
+              </blockquote>
             </section>
           )}
 
-          {/* Nominal lines (read-only) */}
+          {/* Nominal lines */}
           {nominalLines.length > 0 && (
             <section style={styles.section}>
-              <h3 style={styles.sectionTitle}>Nominal Analysis</h3>
+              <div style={styles.sectionHeader}>
+                <span style={styles.sectionNumber}>02</span>
+                <h3 style={styles.sectionTitle}>Nominal analysis</h3>
+                <span style={styles.sectionRule} />
+              </div>
               {(nominalLines as NominalLine[]).map((line) => (
                 <div key={line.id} style={styles.nominalRow}>
-                  <span style={styles.nominalLabel}>Line {line.line_number}:</span>
-                  <span>{line.nominal_account_number ?? '—'}</span>
-                  <span style={styles.divider}>|</span>
-                  <span>{line.nominal_cost_centre ?? '—'}</span>
-                  <span style={styles.divider}>|</span>
-                  <span>{line.nominal_department ?? '—'}</span>
-                  <span style={styles.divider}>|</span>
-                  <span style={{ fontWeight: 600 }}>
+                  <span style={styles.nominalNum}>{String(line.line_number).padStart(2, '0')}</span>
+                  <span style={styles.nominalCol}>{line.nominal_account_number ?? '—'}</span>
+                  <span style={styles.nominalCol}>{line.nominal_cost_centre ?? '—'}</span>
+                  <span style={styles.nominalCol}>{line.nominal_department ?? '—'}</span>
+                  <span style={styles.nominalAmt}>
                     {line.transaction_value != null ? formatAmount(line.transaction_value) : '—'}
                   </span>
                 </div>
@@ -197,40 +217,46 @@ export default function ApproverView() {
             </section>
           )}
 
-          {/* OCR Comparison */}
           <OcrComparisonPanel ocr={ocr ?? null} po={poData} />
 
-          {/* Approval Actions — only shown if pending */}
+          {/* Decision */}
           {poData.status === 'pending_approval' && (
-            <section style={styles.section}>
-              <h3 style={styles.sectionTitle}>Your Decision</h3>
+            <section style={styles.decisionSection}>
+              <div style={styles.sectionHeader}>
+                <span style={styles.sectionNumber}>§</span>
+                <h3 style={styles.sectionTitleLg}>Your decision</h3>
+                <span style={styles.sectionRule} />
+              </div>
               <p style={styles.decisionNote}>
-                By approving, you are confirming this spend is authorised. You are not verifying invoice accuracy.
+                By approving, you confirm this spend is authorised. You are not verifying invoice accuracy.
               </p>
 
               <div style={styles.actionButtons}>
-                <button
-                  style={{ ...styles.actionBtn, ...styles.approveBtn, ...(action === 'approve' ? styles.selected : {}) }}
+                <DecisionBtn
+                  active={action === 'approve'}
                   onClick={() => setAction('approve')}
-                >
-                  ✅ Approve
-                </button>
-                <button
-                  style={{ ...styles.actionBtn, ...styles.rejectBtn, ...(action === 'reject' ? styles.selected : {}) }}
+                  tint="success"
+                  label="Approve"
+                  subtitle="Authorise the spend"
+                />
+                <DecisionBtn
+                  active={action === 'reject'}
                   onClick={() => setAction('reject')}
-                >
-                  ❌ Reject
-                </button>
-                <button
-                  style={{ ...styles.actionBtn, ...styles.forwardBtn, ...(action === 'forward' ? styles.selected : {}) }}
+                  tint="danger"
+                  label="Reject"
+                  subtitle="Return with reason"
+                />
+                <DecisionBtn
+                  active={action === 'forward'}
                   onClick={() => setAction('forward')}
-                >
-                  ➡ Forward
-                </button>
+                  tint="warning"
+                  label="Forward"
+                  subtitle="Send to another approver"
+                />
               </div>
 
               {(action === 'reject' || action === 'forward') && (
-                <div style={{ marginTop: 12 }}>
+                <div style={styles.reasonField}>
                   <label style={styles.label}>
                     {action === 'reject' ? 'Reason for rejection (required)' : 'Reason for forwarding'}
                   </label>
@@ -238,13 +264,13 @@ export default function ApproverView() {
                     style={styles.textarea}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder={action === 'reject' ? 'Provide a reason…' : 'Optional reason…'}
+                    placeholder={action === 'reject' ? 'Why is this being rejected…' : 'Optional context…'}
                   />
                 </div>
               )}
 
               {action === 'forward' && (
-                <div style={{ marginTop: 10 }}>
+                <div style={styles.reasonField}>
                   <label style={styles.label}>Forward to approver</label>
                   <select
                     style={styles.select}
@@ -259,15 +285,22 @@ export default function ApproverView() {
                 </div>
               )}
 
-              {error && <div style={styles.errorBanner}>{error}</div>}
+              {error && (
+                <div style={styles.errorBanner}>
+                  <span style={styles.bannerLabel}>Error</span>
+                  {error}
+                </div>
+              )}
 
               {action && (
                 <button
+                  className="btn"
                   style={styles.submitBtn}
                   onClick={handleSubmit}
                   disabled={submitting}
                 >
-                  {submitting ? 'Submitting…' : `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`}
+                  {submitting ? 'Submitting…' : `Confirm ${action}`}
+                  <span style={styles.submitArrow}>→</span>
                 </button>
               )}
             </section>
@@ -278,54 +311,522 @@ export default function ApproverView() {
   );
 }
 
+function DecisionBtn({
+  active, onClick, tint, label, subtitle,
+}: {
+  active: boolean;
+  onClick: () => void;
+  tint: 'success' | 'danger' | 'warning';
+  label: string;
+  subtitle: string;
+}) {
+  const accentVar = tint === 'success' ? 'var(--success)' : tint === 'danger' ? 'var(--danger)' : 'var(--warning)';
+  const softVar = tint === 'success' ? 'var(--success-soft)' : tint === 'danger' ? 'var(--danger-soft)' : 'var(--warning-soft)';
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: 1,
+        padding: '18px 16px',
+        background: active ? softVar : 'var(--paper)',
+        border: `1px solid ${active ? accentVar : 'var(--line-strong)'}`,
+        borderRadius: 10,
+        cursor: 'pointer',
+        textAlign: 'left',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+        transition: 'all 0.15s var(--ease)',
+        boxShadow: active ? `inset 0 0 0 1px ${accentVar}` : 'none',
+      }}
+    >
+      <span style={{
+        fontFamily: 'var(--font-display)',
+        fontSize: 18,
+        fontWeight: 500,
+        color: active ? accentVar : 'var(--ink)',
+        letterSpacing: '-0.01em',
+      }}>
+        {label}
+      </span>
+      <span style={{
+        fontSize: 11,
+        color: 'var(--ink-faint)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.12em',
+        fontWeight: 500,
+      }}>
+        {subtitle}
+      </span>
+    </button>
+  );
+}
+
 const styles: Record<string, React.CSSProperties> = {
-  page: { minHeight: '100%' },
-  header: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-    marginBottom: 12, flexWrap: 'wrap', gap: 8,
+  page: { display: 'flex', flexDirection: 'column', gap: 16 },
+  masthead: {
+    paddingBottom: 14,
+    borderBottom: '1px solid var(--line)',
   },
-  title: { margin: 0, fontSize: 22, fontWeight: 700, color: '#1e3a5f' },
-  subtitle: { margin: '4px 0 0', fontSize: 14, color: '#666' },
-  readOnlyNotice: {
-    background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 6,
-    padding: '8px 14px', fontSize: 13, color: '#856404', marginBottom: 16,
+  kicker: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    fontSize: 11,
+    fontWeight: 600,
+    color: 'var(--accent-text)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.22em',
+    marginBottom: 12,
   },
-  layout: { display: 'flex', gap: 16, minHeight: 600 },
-  pdfPanel: { width: '45%', minWidth: 300, background: '#f8f9fa', borderRadius: 8, overflow: 'hidden' },
-  pdfFrame: { width: '100%', height: '100%', minHeight: 600, border: 'none' },
-  noPdf: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: 400, color: '#888' },
-  rightPanel: { flex: 1, overflowY: 'auto' },
-  section: { background: '#fff', borderRadius: 8, padding: 16, marginBottom: 12, border: '1px solid #e9ecef' },
-  sectionTitle: { margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#1e3a5f' },
-  summaryTable: { width: '100%', borderCollapse: 'collapse' },
-  summaryKey: { padding: '8px 12px', fontSize: 13, fontWeight: 500, color: '#666', width: '40%', borderBottom: '1px solid #f0f0f0' },
-  summaryVal: { padding: '8px 12px', fontSize: 13, color: '#212529', borderBottom: '1px solid #f0f0f0' },
-  nominalRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '6px 0', borderBottom: '1px solid #f5f5f5' },
-  nominalLabel: { fontWeight: 700, color: '#495057', minWidth: 50 },
-  divider: { color: '#dee2e6' },
-  decisionNote: { margin: '0 0 16px', fontSize: 13, color: '#666', background: '#f8f9fa', padding: 10, borderRadius: 4 },
+  kickerRule: { width: 28, height: 1, background: 'var(--accent)' },
+  titleRow: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 20,
+    flexWrap: 'wrap',
+  },
+  title: {
+    margin: 0,
+    fontFamily: 'var(--font-display)',
+    fontSize: 'clamp(32px, 3.4vw, 44px)',
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.025em',
+    lineHeight: 1.05,
+    fontVariationSettings: "'opsz' 144, 'SOFT' 40",
+  },
+  titleEm: {
+    fontStyle: 'italic',
+    color: 'var(--accent)',
+    fontVariationSettings: "'opsz' 144, 'SOFT' 100",
+  },
+  subtitle: {
+    margin: '14px 0 0',
+    maxWidth: 640,
+    fontSize: 14,
+    lineHeight: 1.6,
+    color: 'var(--ink-muted)',
+  },
+  notice: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    padding: '10px 16px',
+    background: 'var(--warning-soft)',
+    border: '1px solid rgba(154, 107, 30, 0.22)',
+    borderRadius: 8,
+    fontSize: 12.5,
+    color: 'var(--warning)',
+  },
+  noticeLabel: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10.5,
+    fontWeight: 600,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+  },
+  layout: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(320px, 0.82fr) minmax(0, 1fr)',
+    gap: 18,
+  },
+  pdfPanel: {
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'sticky',
+    top: 16,
+    alignSelf: 'flex-start',
+    maxHeight: 'calc(100vh - 120px)',
+  },
+  pdfLabel: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10.5,
+    color: 'var(--accent)',
+    fontWeight: 500,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    paddingLeft: 4,
+  },
+  pdfFrameWrap: {
+    background: 'var(--paper-bright)',
+    border: '1px solid var(--line)',
+    borderRadius: 10,
+    overflow: 'hidden',
+    flex: 1,
+    minHeight: 640,
+  },
+  pdfFrame: { width: '100%', height: '100%', minHeight: 640, border: 'none' },
+  noPdf: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    minHeight: 400,
+    color: 'var(--ink-muted)',
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    fontSize: 14,
+  },
+  noPdfMark: {
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    fontSize: 48,
+    color: 'var(--ink-faint)',
+    opacity: 0.45,
+  },
+  rightPanel: { minWidth: 0 },
+  hero: {
+    background: 'var(--paper-bright)',
+    border: '1px solid var(--line)',
+    borderRadius: 12,
+    padding: '28px 30px 24px',
+    marginBottom: 14,
+    boxShadow: '0 1px 0 rgba(20, 24, 31, 0.02)',
+  },
+  heroTop: { marginBottom: 22 },
+  heroKicker: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10.5,
+    color: 'var(--accent)',
+    fontWeight: 500,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  },
+  heroSupplier: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 28,
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.02em',
+    lineHeight: 1.1,
+  },
+  heroRef: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 12,
+    color: 'var(--ink-muted)',
+    marginTop: 8,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  heroDot: { color: 'var(--ink-faint)' },
+  heroGross: {
+    padding: '18px 22px',
+    background: 'var(--accent-soft)',
+    border: '1px solid rgba(181, 78, 28, 0.22)',
+    borderRadius: 10,
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
+  heroGrossLabel: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: 'var(--accent-text)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.2em',
+  },
+  heroGrossVal: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 36,
+    fontWeight: 500,
+    color: 'var(--accent)',
+    letterSpacing: '-0.02em',
+    fontVariantNumeric: 'tabular-nums',
+    fontVariationSettings: "'opsz' 144, 'SOFT' 40",
+  },
+  heroSplit: {
+    display: 'flex',
+    alignItems: 'stretch',
+    padding: '4px 0',
+  },
+  heroSplitItem: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    minWidth: 0,
+  },
+  heroSplitRule: { width: 1, background: 'var(--line)', margin: '0 16px' },
+  heroSplitLabel: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: 'var(--ink-faint)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.18em',
+  },
+  heroSplitVal: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 14,
+    color: 'var(--ink)',
+    fontVariantNumeric: 'tabular-nums',
+    fontWeight: 500,
+  },
+  heroDesc: {
+    marginTop: 18,
+    paddingTop: 18,
+    borderTop: '1px dashed var(--line-strong)',
+  },
+  heroDescLabel: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: 'var(--ink-faint)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.18em',
+    marginBottom: 6,
+  },
+  heroDescText: {
+    fontSize: 14,
+    color: 'var(--ink)',
+    lineHeight: 1.55,
+  },
+  section: {
+    background: 'var(--paper-bright)',
+    border: '1px solid var(--line)',
+    borderRadius: 10,
+    padding: '20px 22px',
+    marginBottom: 14,
+  },
+  decisionSection: {
+    background: 'var(--paper-bright)',
+    border: '1px solid var(--ink-soft)',
+    borderRadius: 12,
+    padding: '26px 26px 24px',
+    marginBottom: 14,
+    boxShadow: '0 12px 28px -18px rgba(20, 24, 31, 0.2)',
+  },
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 16,
+  },
+  sectionNumber: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 11,
+    color: 'var(--accent)',
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+  },
+  sectionTitle: {
+    margin: 0,
+    fontFamily: 'var(--font-display)',
+    fontSize: 18,
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.01em',
+  },
+  sectionTitleLg: {
+    margin: 0,
+    fontFamily: 'var(--font-display)',
+    fontSize: 24,
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.02em',
+  },
+  sectionRule: { flex: 1, height: 1, background: 'var(--line)' },
+  notes: {
+    margin: 0,
+    padding: '14px 18px',
+    borderLeft: '2px solid var(--accent)',
+    background: 'var(--paper)',
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    fontSize: 15,
+    color: 'var(--ink-soft)',
+    lineHeight: 1.6,
+  },
+  nominalRow: {
+    display: 'grid',
+    gridTemplateColumns: '40px repeat(3, 1fr) auto',
+    gap: 14,
+    alignItems: 'center',
+    padding: '10px 2px',
+    borderBottom: '1px solid var(--line)',
+    fontSize: 13,
+  },
+  nominalNum: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10.5,
+    color: 'var(--accent)',
+    fontWeight: 600,
+    letterSpacing: '0.1em',
+  },
+  nominalCol: {
+    color: 'var(--ink-soft)',
+    fontSize: 12.5,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  nominalAmt: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 13,
+    fontWeight: 600,
+    color: 'var(--ink)',
+    fontVariantNumeric: 'tabular-nums',
+  },
+  decisionNote: {
+    margin: '0 0 18px',
+    fontSize: 13,
+    color: 'var(--ink-muted)',
+    lineHeight: 1.55,
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+  },
   actionButtons: { display: 'flex', gap: 10 },
-  actionBtn: {
-    flex: 1, padding: '12px 8px', border: '2px solid transparent',
-    borderRadius: 6, cursor: 'pointer', fontSize: 14, fontWeight: 600,
+  reasonField: {
+    marginTop: 14,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
   },
-  approveBtn: { background: '#d1e7dd', color: '#0a3622', borderColor: '#a3cfbb' },
-  rejectBtn: { background: '#f8d7da', color: '#842029', borderColor: '#f1aeb5' },
-  forwardBtn: { background: '#fff3cd', color: '#664d03', borderColor: '#ffe69c' },
-  selected: { outline: '3px solid #1e3a5f', outlineOffset: 2 },
-  label: { fontSize: 12, color: '#666', fontWeight: 500, marginBottom: 4, display: 'block' },
-  textarea: { width: '100%', padding: '8px 10px', border: '1px solid #ced4da', borderRadius: 4, fontSize: 13, minHeight: 80, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' },
-  select: { width: '100%', padding: '8px 10px', border: '1px solid #ced4da', borderRadius: 4, fontSize: 13 },
-  errorBanner: { background: '#f8d7da', color: '#842029', padding: '8px 12px', borderRadius: 4, fontSize: 13, marginTop: 10 },
+  label: {
+    fontSize: 10.5,
+    color: 'var(--ink-faint)',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+  },
+  textarea: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid var(--line-strong)',
+    borderRadius: 7,
+    fontSize: 13,
+    minHeight: 84,
+    resize: 'vertical',
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    background: 'var(--paper)',
+    color: 'var(--ink)',
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  select: {
+    width: '100%',
+    padding: '9px 12px',
+    border: '1px solid var(--line-strong)',
+    borderRadius: 7,
+    fontSize: 13,
+    background: 'var(--paper)',
+    color: 'var(--ink)',
+  },
+  errorBanner: {
+    marginTop: 14,
+    background: 'var(--danger-soft)',
+    border: '1px solid rgba(160, 49, 53, 0.25)',
+    color: 'var(--danger)',
+    padding: '10px 14px',
+    borderRadius: 8,
+    fontSize: 13,
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: 10,
+  },
+  bannerLabel: {
+    fontWeight: 700,
+    fontSize: 9.5,
+    letterSpacing: '0.18em',
+    textTransform: 'uppercase',
+    flexShrink: 0,
+  },
   submitBtn: {
-    marginTop: 14, width: '100%', padding: '12px', background: '#1e3a5f',
-    color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 15, fontWeight: 700,
+    marginTop: 18,
+    width: '100%',
+    padding: '14px',
+    background: 'var(--ink)',
+    color: 'var(--paper)',
+    border: '1px solid var(--ink)',
+    borderRadius: 10,
+    fontSize: 14,
+    fontWeight: 500,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    textTransform: 'capitalize',
+    letterSpacing: '0.01em',
   },
-  successPage: { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' },
-  successCard: { background: '#fff', borderRadius: 12, padding: 40, textAlign: 'center', maxWidth: 400, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' },
-  successIcon: { fontSize: 48, marginBottom: 16 },
-  successTitle: { margin: '0 0 12px', fontSize: 22, color: '#1e3a5f' },
-  successText: { margin: 0, fontSize: 14, color: '#555', lineHeight: 1.6 },
-  loading: { padding: 40, textAlign: 'center', color: '#888' },
-  error: { padding: 16, background: '#f8d7da', color: '#842029', borderRadius: 8 },
+  submitArrow: { fontSize: 14, opacity: 0.7 },
+  successPage: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '70vh',
+    padding: 24,
+  },
+  successCard: {
+    background: 'var(--paper-bright)',
+    border: '1px solid var(--line)',
+    borderRadius: 14,
+    padding: '42px 44px 34px',
+    textAlign: 'center',
+    maxWidth: 460,
+    width: '100%',
+    boxShadow: '0 24px 60px -30px rgba(20, 24, 31, 0.3)',
+  },
+  successKicker: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 11,
+    color: 'var(--accent)',
+    fontWeight: 500,
+    letterSpacing: '0.14em',
+    marginBottom: 14,
+    textTransform: 'uppercase',
+  },
+  successTitle: {
+    margin: 0,
+    fontFamily: 'var(--font-display)',
+    fontSize: 32,
+    fontWeight: 400,
+    color: 'var(--ink)',
+    letterSpacing: '-0.02em',
+    lineHeight: 1.1,
+  },
+  successEm: {
+    fontStyle: 'italic',
+    color: 'var(--accent)',
+    fontVariationSettings: "'opsz' 144, 'SOFT' 100",
+  },
+  successText: {
+    margin: '14px 0 0',
+    fontSize: 14,
+    color: 'var(--ink-muted)',
+    lineHeight: 1.6,
+  },
+  successRule: {
+    width: 40,
+    height: 1,
+    background: 'var(--accent)',
+    margin: '24px auto',
+  },
+  successFoot: {
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    fontSize: 13,
+    color: 'var(--ink-faint)',
+  },
+  loading: {
+    padding: 80,
+    textAlign: 'center',
+    color: 'var(--ink-muted)',
+    fontFamily: 'var(--font-display)',
+    fontStyle: 'italic',
+    fontSize: 16,
+  },
+  error: {
+    padding: 16,
+    background: 'var(--danger-soft)',
+    color: 'var(--danger)',
+    borderRadius: 8,
+    border: '1px solid rgba(160, 49, 53, 0.25)',
+  },
 };
