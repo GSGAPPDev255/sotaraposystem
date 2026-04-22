@@ -38,7 +38,7 @@ export default function InvoiceReview() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string[] | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
@@ -142,18 +142,51 @@ export default function InvoiceReview() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e) {
-      setSaveError((e as Error).message);
+      setSaveError([(e as Error).message]);
     } finally {
       setSaving(false);
     }
   };
 
+  const validateReadyForApproval = (): string[] => {
+    const errors: string[] = [];
+
+    // Required fields
+    if (!form.account_number?.trim()) {
+      errors.push('Account Number is required');
+    }
+    if (!form.supplier_name?.trim()) {
+      errors.push('Supplier Name is required');
+    }
+    if (!form.transaction_date) {
+      errors.push('Transaction Date is required');
+    }
+
+    // Amount validation: Net + VAT = Gross (±0.01)
+    const net = Number(form.net_amount ?? 0);
+    const vat = Number(form.vat_amount ?? 0);
+    const gross = Number(form.gross_amount ?? 0);
+    const TOLERANCE = 0.01;
+
+    if (Math.abs(net + vat - gross) > TOLERANCE) {
+      errors.push(`Net (£${net.toFixed(2)}) + VAT (£${vat.toFixed(2)}) must equal Gross (£${gross.toFixed(2)})`);
+    }
+
+    return errors;
+  };
+
   const handleMarkReady = async () => {
+    const validationErrors = validateReadyForApproval();
+    if (validationErrors.length > 0) {
+      setSaveError(validationErrors);
+      return;
+    }
+
     setShowConfirm(false);
     try {
       await markReady.mutateAsync(id!);
     } catch (e) {
-      setSaveError((e as Error).message);
+      setSaveError([(e as Error).message]);
     }
   };
 
@@ -220,8 +253,29 @@ export default function InvoiceReview() {
       </div>
 
       {saveError && <div style={styles.errorBanner}>
-        <span style={styles.bannerLabel}>Error</span>
-        {saveError}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <span style={styles.bannerLabel}>⚠ Validation Error</span>
+            <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, fontSize: 13 }}>
+              {saveError.map((err, i) => (
+                <li key={i} style={{ marginTop: i > 0 ? 4 : 0 }}>{err}</li>
+              ))}
+            </ul>
+          </div>
+          <button
+            onClick={() => setSaveError(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'inherit',
+              cursor: 'pointer',
+              fontSize: 20,
+              padding: '0 0 0 16px',
+            }}
+          >
+            ×
+          </button>
+        </div>
       </div>}
       {saveSuccess && <div style={styles.successBanner}>
         <span style={styles.bannerLabelSuccess}>Saved</span>
