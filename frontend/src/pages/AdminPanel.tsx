@@ -713,6 +713,7 @@ function SystemTab() {
   const [triggering, setTriggering] = useState<string | null>(null);
   const [results, setResults]       = useState<Record<string, string>>({});
   const [stats, setStats]           = useState<{ pos: number; files: number; exports: number } | null>(null);
+  const [sendingReminders, setSendingReminders] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -746,11 +747,38 @@ function SystemTab() {
     setTriggering(null);
   }
 
+  async function sendManualReminders() {
+    setSendingReminders(true);
+    setResults((r) => ({ ...r, 'manual-reminders': 'Sending…' }));
+    try {
+      const { data, error } = await supabase.functions.invoke('reminder-scheduler', { method: 'POST' });
+      if (error) {
+        setResults((r) => ({ ...r, 'manual-reminders': 'Error: ' + error.message }));
+      } else {
+        const text = typeof data === 'object' ? JSON.stringify(data) : String(data);
+        setResults((r) => ({ ...r, 'manual-reminders': 'Sent. ' + text }));
+      }
+    } catch (e) {
+      setResults((r) => ({ ...r, 'manual-reminders': 'Failed: ' + (e as Error).message }));
+    }
+    setSendingReminders(false);
+  }
+
   return (
     <div>
       <SectionHeader
         title="System health & controls"
         subtitle="Database stats and manual function triggers. Use these to test or recover from issues."
+        actions={
+          <button
+            className="btn"
+            style={s.btnPrimary}
+            disabled={sendingReminders}
+            onClick={sendManualReminders}
+          >
+            {sendingReminders ? 'Sending…' : '📧 Send reminders now'}
+          </button>
+        }
       />
 
       {stats && (
@@ -758,6 +786,14 @@ function SystemTab() {
           <StatCard label="Invoice files" value={stats.files} />
           <StatCard label="Purchase orders" value={stats.pos} />
           <StatCard label="Sage exports" value={stats.exports} />
+        </div>
+      )}
+
+      {results['manual-reminders'] && (
+        <div style={{ ...s.card, marginBottom: 20, backgroundColor: 'var(--paper-bright)', borderLeft: '3px solid var(--accent)' }}>
+          <div style={{ padding: 16, fontFamily: 'var(--font-mono)', fontSize: 12, color: results['manual-reminders'].startsWith('Error') || results['manual-reminders'].startsWith('Failed') ? 'var(--danger)' : 'var(--success)' }}>
+            {results['manual-reminders']}
+          </div>
         </div>
       )}
 
