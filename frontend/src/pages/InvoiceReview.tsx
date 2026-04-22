@@ -73,7 +73,7 @@ export default function InvoiceReview() {
   if (!po) return <div style={styles.error}>Invoice not found.</div>;
 
   const poData = po as PurchaseOrder & { invoice_file?: unknown; approver?: unknown };
-  const isEditable = ['pending_finance_review', 'rejected'].includes(poData.status);
+  const isEditable = ['pending_finance_review', 'pending_approval', 'rejected'].includes(poData.status);
 
   const f = (key: keyof PurchaseOrder, label: string, type: 'text' | 'number' | 'date' | 'textarea' = 'text') => {
     const isMoney = type === 'number';
