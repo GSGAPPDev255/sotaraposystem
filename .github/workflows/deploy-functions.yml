@@ -51,7 +51,7 @@ jobs:
         run: |
           # send-approval, process-approval, and generate-csv handle auth internally
           # and must not be blocked by the platform gateway verify_jwt check
-          for fn in send-approval process-approval generate-csv admin-actions; do
+          for fn in send-approval process-approval generate-csv admin-actions sync-approvers reminder-scheduler; do
             curl -X PATCH \
               "https://api.supabase.com/v1/projects/${{ secrets.SUPABASE_PROJECT_REF }}/functions/$fn" \
               -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
