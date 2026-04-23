@@ -260,45 +260,57 @@ function AuthCallback({ onProfile }: { onProfile: (p: Profile | null) => void })
     let timeout: ReturnType<typeof setTimeout> | null = null;
 
     function handleSession(userId: string) {
+      console.log('[AuthCallback] Fetching profile for userId:', userId);
       supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
         .then(
-          ({ data }) => {
+          ({ data, error }) => {
             if (cancelled) return;
+            console.log('[AuthCallback] Profile fetch result:', { data, error });
+            if (error) {
+              console.error('[AuthCallback] Profile fetch error:', error);
+              onProfile(null);
+              navigate('/login', { replace: true });
+              return;
+            }
             const p = (data as Profile) ?? null;
+            console.log('[AuthCallback] Setting profile:', p?.email);
             setCachedProfile(p);
             onProfile(p);
             const dest = p?.role === 'staff' ? '/my-expenses' : '/dashboard';
+            console.log('[AuthCallback] Navigating to:', dest);
             navigate(dest, { replace: true });
-          },
-          () => {
-            if (cancelled) return;
-            onProfile(null);
-            navigate('/login', { replace: true });
           },
         );
     }
 
+    console.log('[AuthCallback] Checking session...');
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('[AuthCallback] getSession returned:', { userId: session?.user?.id, email: session?.user?.email });
       if (cancelled) return;
 
       if (session?.user) {
+        console.log('[AuthCallback] Session found, fetching profile');
         handleSession(session.user.id);
         return;
       }
 
       // Session not ready — wait for SIGNED_IN event (PKCE code exchange in progress)
+      console.log('[AuthCallback] No session yet, waiting for SIGNED_IN event');
       const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(
         (event, s) => {
+          console.log('[AuthCallback] onAuthStateChange event:', event, { userId: s?.user?.id });
           if (cancelled) return;
           if (event === 'SIGNED_IN' && s?.user) {
+            console.log('[AuthCallback] SIGNED_IN event received');
             if (timeout) clearTimeout(timeout);
             sub.unsubscribe();
             handleSession(s.user.id);
           } else if (event === 'SIGNED_OUT') {
+            console.log('[AuthCallback] SIGNED_OUT event received');
             if (timeout) clearTimeout(timeout);
             sub.unsubscribe();
             navigate('/login', { replace: true });
@@ -309,6 +321,7 @@ function AuthCallback({ onProfile }: { onProfile: (p: Profile | null) => void })
 
       // Safety timeout in case code exchange fails
       timeout = setTimeout(() => {
+        console.log('[AuthCallback] 15s timeout reached, redirecting to login');
         if (!cancelled) {
           sub.unsubscribe();
           navigate('/login', { replace: true });
