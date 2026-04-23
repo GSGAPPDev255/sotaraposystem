@@ -19,11 +19,14 @@ export default function TopBar({ profile }: { profile: Profile }) {
 
   return (
     <header style={styles.bar}>
+      {/* Subtle prism line at bottom */}
+      <div style={styles.prismLine} aria-hidden />
+
       <div style={styles.leftSide}>
-        <span style={styles.dateBadge}>
+        <div style={styles.dateBadge}>
           <span style={styles.dateLabel}>Today</span>
           <span style={styles.dateValue}>{today}</span>
-        </span>
+        </div>
       </div>
 
       <div style={styles.rightSide}>
@@ -48,14 +51,25 @@ export default function TopBar({ profile }: { profile: Profile }) {
 
 const styles: Record<string, React.CSSProperties> = {
   bar: {
-    height: 64,
-    background: 'var(--paper)',
-    borderBottom: '1px solid var(--line)',
+    height: 60,
+    background: 'rgba(7, 9, 26, 0.70)',
+    backdropFilter: 'blur(20px) saturate(1.5)',
+    WebkitBackdropFilter: 'blur(20px) saturate(1.5)',
+    borderBottom: '1px solid rgba(255,255,255,0.07)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '0 40px',
+    padding: '0 36px',
     flexShrink: 0,
+    position: 'relative',
+  },
+  prismLine: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    background: 'linear-gradient(90deg, transparent 0%, rgba(0,180,216,0.4) 30%, rgba(6,214,160,0.3) 70%, transparent 100%)',
   },
   leftSide: { display: 'flex', alignItems: 'center', gap: 14 },
   dateBadge: {
@@ -64,64 +78,74 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
   },
   dateLabel: {
-    fontSize: 10,
-    fontWeight: 600,
-    color: 'var(--ink-faint)',
+    fontSize: 9,
+    fontWeight: 700,
+    color: 'rgba(240,244,255,0.3)',
     textTransform: 'uppercase',
     letterSpacing: '0.22em',
+    fontFamily: 'var(--font-display)',
   },
   dateValue: {
-    fontFamily: 'var(--font-display)',
-    fontStyle: 'italic',
-    fontSize: 15,
-    color: 'var(--ink-soft)',
-    letterSpacing: '-0.005em',
+    fontFamily: 'var(--font-ui)',
+    fontSize: 13,
+    fontWeight: 300,
+    color: 'rgba(240,244,255,0.65)',
+    letterSpacing: '0.01em',
   },
-  rightSide: { display: 'flex', alignItems: 'center', gap: 20 },
+  rightSide: { display: 'flex', alignItems: 'center', gap: 18 },
   user: { display: 'flex', alignItems: 'center', gap: 12 },
-  userMeta: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.1 },
+  userMeta: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    lineHeight: 1.2,
+  },
   userName: {
     fontSize: 13,
     fontWeight: 500,
-    color: 'var(--ink)',
+    color: 'rgba(240,244,255,0.90)',
   },
   userRole: {
-    fontSize: 10,
-    color: 'var(--ink-faint)',
+    fontSize: 9,
+    color: 'rgba(240,244,255,0.35)',
     textTransform: 'uppercase',
     letterSpacing: '0.18em',
-    marginTop: 3,
-    fontWeight: 500,
+    marginTop: 2,
+    fontWeight: 600,
+    fontFamily: 'var(--font-display)',
   },
   avatar: {
     width: 34,
     height: 34,
     borderRadius: '50%',
-    background: 'var(--ink)',
-    color: 'var(--paper)',
+    background: 'linear-gradient(135deg, rgba(0,180,216,0.3) 0%, rgba(6,214,160,0.3) 100%)',
+    border: '1px solid rgba(0,198,224,0.35)',
+    color: '#00C6E0',
     display: 'grid',
     placeItems: 'center',
     fontSize: 11,
-    fontWeight: 600,
+    fontWeight: 700,
     letterSpacing: '0.05em',
-    boxShadow: '0 0 0 1px var(--line-strong), 0 0 0 3px var(--paper)',
+    fontFamily: 'var(--font-display)',
+    boxShadow: '0 0 12px rgba(0,198,224,0.2)',
   },
   signOut: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 8,
-    padding: '8px 14px',
-    background: 'transparent',
-    border: '1px solid var(--line-strong)',
-    borderRadius: 'var(--radius)',
+    gap: 7,
+    padding: '7px 14px',
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.10)',
+    borderRadius: 8,
     fontSize: 12,
-    color: 'var(--ink-soft)',
-    fontWeight: 500,
+    color: 'rgba(240,244,255,0.5)',
+    fontWeight: 400,
     transition: 'all 0.15s var(--ease)',
+    cursor: 'pointer',
+    backdropFilter: 'blur(8px)',
   },
   signOutArrow: {
-    fontSize: 14,
-    color: 'var(--ink-faint)',
-    transform: 'translateY(-1px)',
+    fontSize: 13,
+    color: 'rgba(0,198,224,0.6)',
   },
 };
