@@ -253,36 +253,69 @@ export default function App() {
 
 function AuthCallback({ onProfile }: { onProfile: (p: Profile | null) => void }) {
   const navigate = useNavigate();
+
   useEffect(() => {
-    supabase.auth.getSession().then(
-      ({ data: { session } }) => {
-        if (session?.user) {
-          // PostgREST query builder returns PromiseLike — use two-arg .then form.
-          supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-            .then(
-              ({ data }) => {
-                const p = (data as Profile) ?? null;
-                setCachedProfile(p);
-                onProfile(p);
-                const dest = p?.role === 'staff' ? '/my-expenses' : '/dashboard';
-                navigate(dest, { replace: true });
-              },
-              () => {
-                onProfile(null);
-                navigate('/dashboard', { replace: true });
-              },
-            );
-        } else {
+    let cancelled = false;
+
+    function handleSession(userId: string) {
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+        .then(
+          ({ data }) => {
+            if (cancelled) return;
+            const p = (data as Profile) ?? null;
+            setCachedProfile(p);
+            onProfile(p);
+            const dest = p?.role === 'staff' ? '/my-expenses' : '/dashboard';
+            navigate(dest, { replace: true });
+          },
+          () => {
+            if (cancelled) return;
+            // Profile fetch failed — still navigate so App can retry
+            onProfile(null);
+            navigate('/login', { replace: true });
+          },
+        );
+    }
+
+    // First try: check if session is already available (fast path on page refresh)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return;
+      if (session?.user) {
+        handleSession(session.user.id);
+        return;
+      }
+      // Session not ready yet (PKCE exchange in progress) — wait for SIGNED_IN event
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, s) => {
+          if (cancelled) return;
+          if (event === 'SIGNED_IN' && s?.user) {
+            subscription.unsubscribe();
+            handleSession(s.user.id);
+          } else if (event === 'SIGNED_OUT') {
+            subscription.unsubscribe();
+            navigate('/login', { replace: true });
+          }
+        },
+      );
+
+      // Safety timeout — if nothing happens in 15s, go back to login
+      const timeout = setTimeout(() => {
+        if (!cancelled) {
+          subscription.unsubscribe();
           navigate('/login', { replace: true });
         }
-      },
-      () => navigate('/login', { replace: true }),
-    );
+      }, 15000);
+
+      return () => { clearTimeout(timeout); subscription.unsubscribe(); };
+    });
+
+    return () => { cancelled = true; };
   }, [navigate, onProfile]);
+
   return <div style={styles.center}><div style={styles.spinner} /></div>;
 }
 

@@ -61,7 +61,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         // Cache navigation requests with the app shell
         navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/functions\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/functions\//, /^\/auth\//],
         runtimeCaching: [
           // Supabase API — always fresh (network-only)
           {
