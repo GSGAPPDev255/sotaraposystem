@@ -10,6 +10,10 @@ import ApproverView from './pages/ApproverView';
 import ExportManagement from './pages/ExportManagement';
 import AuditTrailViewer from './pages/AuditTrailViewer';
 import AdminPanel from './pages/AdminPanel';
+import ExpenseDashboard from './pages/ExpenseDashboard';
+import ExpenseReview from './pages/ExpenseReview';
+import ExpenseApprovalView from './pages/ExpenseApprovalView';
+import ExpenseExport from './pages/ExpenseExport';
 
 const PROFILE_CACHE_KEY = 'posystem_profile_cache';
 
@@ -139,13 +143,27 @@ export default function App() {
         element={profile ? <Navigate to="/dashboard" replace /> : <Login />}
       />
 
-      {/* Approver view */}
+      {/* Approver view — invoice */}
       <Route
         path="/approve/:id"
         element={
           profile ? (
             <AppShell profile={profile}>
               <ApproverView />
+            </AppShell>
+          ) : (
+            <Navigate to="/login" state={{ returnTo: window.location.pathname }} replace />
+          )
+        }
+      />
+
+      {/* Approver view — expense */}
+      <Route
+        path="/expenses/approve/:id"
+        element={
+          profile ? (
+            <AppShell profile={profile}>
+              <ExpenseApprovalView />
             </AppShell>
           ) : (
             <Navigate to="/login" state={{ returnTo: window.location.pathname }} replace />
@@ -165,6 +183,9 @@ export default function App() {
                 <Route path="/invoices/:id" element={<InvoiceReview />} />
                 <Route path="/export" element={<ExportManagement />} />
                 <Route path="/audit/:id" element={<AuditTrailViewer />} />
+                <Route path="/expenses" element={<ExpenseDashboard />} />
+                <Route path="/expenses/:id" element={<ExpenseReview />} />
+                <Route path="/expenses/export" element={<ExpenseExport />} />
                 <Route
                   path="/admin"
                   element={

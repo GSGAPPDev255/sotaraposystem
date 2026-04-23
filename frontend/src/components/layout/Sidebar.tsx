@@ -1,10 +1,12 @@
 import { NavLink } from 'react-router-dom';
 import type { UserRole } from '../../lib/supabase';
 
-const NAV_ITEMS: { label: string; path: string; roles: UserRole[]; number: string }[] = [
-  { number: '01', label: 'Dashboard', path: '/dashboard', roles: ['finance', 'admin', 'auditor'] },
-  { number: '02', label: 'Export',    path: '/export',    roles: ['finance', 'admin'] },
-  { number: '03', label: 'Admin',     path: '/admin',     roles: ['admin'] },
+const NAV_ITEMS: { label: string; path: string; roles: UserRole[]; number: string; group?: string }[] = [
+  { number: '01', label: 'Dashboard', path: '/dashboard',       roles: ['finance', 'admin', 'auditor'] },
+  { number: '02', label: 'Export',    path: '/export',          roles: ['finance', 'admin'] },
+  { number: '03', label: 'Expenses',  path: '/expenses',        roles: ['finance', 'admin', 'auditor'], group: 'expenses' },
+  { number: '04', label: 'Exp. Export', path: '/expenses/export', roles: ['finance', 'admin'], group: 'expenses' },
+  { number: '05', label: 'Admin',     path: '/admin',           roles: ['admin'] },
 ];
 
 /** Sotara infinity mark — matches the actual logo SVG */

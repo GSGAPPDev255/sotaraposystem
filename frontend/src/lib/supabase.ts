@@ -144,6 +144,95 @@ export interface OcrExtraction {
   created_at: string;
 }
 
+// ── Expense types ─────────────────────────────────────────────────────────────
+
+export type ExpenseCategory =
+  | 'travel_accommodation'
+  | 'travel_meals'
+  | 'travel_transport'
+  | 'office_supplies'
+  | 'software'
+  | 'training'
+  | 'client_entertainment'
+  | 'other';
+
+export type ExpenseStatus =
+  | 'pending_finance_review'
+  | 'pending_approval'
+  | 'approved'
+  | 'rejected'
+  | 'exported';
+
+export interface ExpenseFile {
+  id: string;
+  storage_path: string;
+  bucket_name: string;
+  original_name: string;
+  mime_type: string;
+  file_size_bytes: number | null;
+  email_from: string | null;
+  email_date: string | null;
+  email_subject: string | null;
+  created_at: string;
+}
+
+export interface Expense {
+  id: string;
+  expense_file_id: string | null;
+  status: ExpenseStatus;
+  employee_email: string;
+  employee_name: string | null;
+  category: ExpenseCategory;
+  description: string | null;
+  receipt_date: string | null;
+  merchant_name: string | null;
+  amount: number;
+  currency: string;
+  assigned_approver_id: string | null;
+  approved_by_id: string | null;
+  approved_at: string | null;
+  rejected_reason: string | null;
+  forwarded_to_id: string | null;
+  forwarded_reason: string | null;
+  approval_sent_at: string | null;
+  approver_comments: string | null;
+  exported_at: string | null;
+  exported_by_id: string | null;
+  csv_export_id: string | null;
+  gl_code: string | null;
+  cost_centre: string | null;
+  department: string | null;
+  finance_notes: string | null;
+  finance_user_id: string | null;
+  created_at: string;
+  created_by_id: string | null;
+  updated_at: string;
+  updated_by_id: string | null;
+}
+
+export interface ExpenseOcrExtraction {
+  id: string;
+  expense_id: string;
+  expense_file_id: string;
+  gemini_model: string;
+  raw_response: unknown;
+  extracted_fields: Record<string, unknown>;
+  confidence_scores: unknown;
+  processing_ms: number | null;
+  created_at: string;
+}
+
+export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
+  travel_accommodation: '🏨 Accommodation',
+  travel_meals:        '🍽️ Meals',
+  travel_transport:    '🚗 Transport',
+  office_supplies:     '📎 Office Supplies',
+  software:            '💻 Software',
+  training:            '📚 Training',
+  client_entertainment:'🤝 Client Entertainment',
+  other:               '📋 Other',
+};
+
 export interface AuditLogEntry {
   id: string;
   purchase_order_id: string | null;
