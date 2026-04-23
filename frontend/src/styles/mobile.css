@@ -1,0 +1,297 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Sotara · Mobile-Responsive Overrides
+   All breakpoints use max-width: 767px (mobile) / min-width: 768px (desktop)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Viewport meta / base ──────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  body {
+    font-size: 13px;
+  }
+
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.2rem; }
+}
+
+/* ── AppShell layout ────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .app-shell-main {
+    width: 100% !important;
+  }
+
+  .app-content-inner {
+    padding: 16px 16px 48px !important;
+  }
+}
+
+/* ── Sidebar drawer ─────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .sidebar-drawer {
+    position: fixed !important;
+    top: 0 !important;
+    left: -260px !important;
+    height: 100vh !important;
+    width: 260px !important;
+    z-index: 300 !important;
+    transition: left 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) !important;
+  }
+
+  .sidebar-drawer.sidebar-open {
+    left: 0 !important;
+    box-shadow: 4px 0 40px rgba(0, 0, 0, 0.6) !important;
+  }
+
+  .sidebar-overlay {
+    display: block !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .sidebar-overlay {
+    display: none !important;
+  }
+
+  .sidebar-close-btn {
+    display: none !important;
+  }
+}
+
+/* ── TopBar ─────────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .topbar-hamburger {
+    display: flex !important;
+  }
+
+  .topbar-date-badge {
+    display: none !important;
+  }
+
+  .topbar-sign-out-text {
+    display: none !important;
+  }
+
+  .topbar-sign-out-arrow {
+    font-size: 15px !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .topbar-hamburger {
+    display: none !important;
+  }
+}
+
+/* ── Stat grid ──────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Toolbar ────────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .toolbar-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .toolbar-row input,
+  .toolbar-row select {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+
+  .filter-chips {
+    overflow-x: auto;
+    padding-bottom: 4px;
+    flex-wrap: nowrap !important;
+  }
+}
+
+/* ── Desktop table → hidden on mobile ──────────────────────────────────────── */
+@media (max-width: 767px) {
+  .desktop-table {
+    display: none !important;
+  }
+
+  .mobile-cards {
+    display: flex !important;
+    flex-direction: column;
+    gap: 1px;
+  }
+}
+
+@media (min-width: 768px) {
+  .desktop-table {
+    display: table !important;
+  }
+
+  .mobile-cards {
+    display: none !important;
+  }
+}
+
+/* ── Mobile card rows ───────────────────────────────────────────────────────── */
+.mobile-card-row {
+  padding: 14px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  transition: background 0.12s;
+}
+
+.mobile-card-row:active {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mobile-card-row:last-child {
+  border-bottom: none;
+}
+
+.mobile-card-row-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.mobile-card-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Split layouts (invoice review, expense review) ─────────────────────────── */
+@media (max-width: 767px) {
+  .split-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .split-layout-reverse-mobile {
+    display: flex !important;
+    flex-direction: column-reverse;
+  }
+}
+
+/* ── Action button rows ─────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .action-btn-row {
+    flex-direction: column !important;
+  }
+
+  .action-btn-row .btn {
+    width: 100%;
+  }
+}
+
+/* ── Modal ──────────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .modal-sheet {
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+}
+
+/* ── Approval view grid ─────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .approval-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .approval-sidebar {
+    position: static !important;
+  }
+}
+
+/* ── Admin panel tabs ───────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .admin-tab-row {
+    overflow-x: auto;
+    padding-bottom: 4px;
+    gap: 6px !important;
+  }
+}
+
+/* ── Page masthead ──────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .page-masthead {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 14px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .page-masthead .btn {
+    align-self: stretch;
+    justify-content: center;
+  }
+}
+
+/* ── Sticky PDF/receipt panel on mobile — unstick it ───────────────────────── */
+@media (max-width: 767px) {
+  .split-layout > div:first-child {
+    position: static !important;
+    max-height: 300px !important;
+    overflow: hidden !important;
+  }
+}
+
+/* ── Scrollable table wrapper ───────────────────────────────────────────────── */
+.table-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+  .table-scroll-wrapper {
+    margin: 0 -1px;
+  }
+}
+
+/* ── Card stat padding on mobile ────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .stat-card {
+    padding: 12px 14px !important;
+  }
+}
+
+/* ── Back button on mobile ──────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .back-btn {
+    margin-bottom: 14px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* ── 2-col form grids ───────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .form-grid-amount {
+    grid-template-columns: 2fr 1fr !important;
+  }
+}
+
+/* ── Export table hide columns on mobile ────────────────────────────────────── */
+@media (max-width: 767px) {
+  .col-hide-mobile {
+    display: none !important;
+  }
+}

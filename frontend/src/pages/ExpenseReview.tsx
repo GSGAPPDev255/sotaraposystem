@@ -234,7 +234,7 @@ export default function ExpenseReview() {
       )}
 
       {/* Split layout: Receipt | Form */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
+      <div className="split-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
 
         {/* LEFT: Receipt viewer */}
         <div>

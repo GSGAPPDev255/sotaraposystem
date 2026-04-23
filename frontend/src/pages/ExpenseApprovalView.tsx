@@ -137,7 +137,7 @@ export default function ExpenseApprovalView() {
         </p>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: 24, alignItems: 'start' }}>
+      <div className="split-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: 24, alignItems: 'start' }}>
 
         {/* Receipt image */}
         <div>

@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { Profile } from '../../lib/supabase';
 import Sidebar from './Sidebar';
@@ -9,17 +10,34 @@ interface AppShellProps {
 }
 
 export default function AppShell({ profile, children }: AppShellProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const openSidebar  = useCallback(() => setSidebarOpen(true),  []);
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+
   return (
     <div style={styles.shell}>
-      {/* Ambient prism orbs — decorative, pointer-events none */}
+      {/* Ambient prism orbs — decorative */}
       <div style={{ ...styles.orb, ...styles.orbTL }} aria-hidden />
       <div style={{ ...styles.orb, ...styles.orbBR }} aria-hidden />
 
-      <Sidebar role={profile.role} />
-      <div style={styles.main}>
-        <TopBar profile={profile} />
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="sidebar-overlay"
+          style={styles.overlay}
+          onClick={closeSidebar}
+          aria-hidden
+        />
+      )}
+
+      <Sidebar role={profile.role} isOpen={sidebarOpen} onClose={closeSidebar} />
+
+      <div className="app-shell-main" style={styles.main}>
+        <TopBar profile={profile} onMenuClick={openSidebar} />
         <main style={styles.content}>
-          <div style={styles.inner}>{children}</div>
+          <div className="app-content-inner" style={styles.inner}>
+            {children}
+          </div>
         </main>
       </div>
     </div>
@@ -41,18 +59,21 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 0,
   },
   orbTL: {
-    top: -200,
-    left: -100,
-    width: 600,
-    height: 600,
+    top: -200, left: -100,
+    width: 600, height: 600,
     background: 'radial-gradient(circle, rgba(0,180,216,0.07) 0%, transparent 65%)',
   },
   orbBR: {
-    bottom: -200,
-    right: -100,
-    width: 500,
-    height: 500,
+    bottom: -200, right: -100,
+    width: 500, height: 500,
     background: 'radial-gradient(circle, rgba(6,214,160,0.06) 0%, transparent 65%)',
+  },
+  overlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.55)',
+    backdropFilter: 'blur(4px)',
+    zIndex: 200,
   },
   main: {
     flex: 1,

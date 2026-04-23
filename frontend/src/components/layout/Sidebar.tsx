@@ -2,14 +2,13 @@ import { NavLink } from 'react-router-dom';
 import type { UserRole } from '../../lib/supabase';
 
 const NAV_ITEMS: { label: string; path: string; roles: UserRole[]; number: string; group?: string }[] = [
-  { number: '01', label: 'Dashboard', path: '/dashboard',       roles: ['finance', 'admin', 'auditor'] },
-  { number: '02', label: 'Export',    path: '/export',          roles: ['finance', 'admin'] },
-  { number: '03', label: 'Expenses',  path: '/expenses',        roles: ['finance', 'admin', 'auditor'], group: 'expenses' },
-  { number: '04', label: 'Exp. Export', path: '/expenses/export', roles: ['finance', 'admin'], group: 'expenses' },
-  { number: '05', label: 'Admin',     path: '/admin',           roles: ['admin'] },
+  { number: '01', label: 'Dashboard',   path: '/dashboard',        roles: ['finance', 'admin', 'auditor'] },
+  { number: '02', label: 'Export',      path: '/export',           roles: ['finance', 'admin'] },
+  { number: '03', label: 'Expenses',    path: '/expenses',         roles: ['finance', 'admin', 'auditor'], group: 'expenses' },
+  { number: '04', label: 'Exp. Export', path: '/expenses/export',  roles: ['finance', 'admin'], group: 'expenses' },
+  { number: '05', label: 'Admin',       path: '/admin',            roles: ['admin'] },
 ];
 
-/** Sotara infinity mark — matches the actual logo SVG */
 function SotaraInfinityMark({ size = 40 }: { size?: number }) {
   return (
     <svg
@@ -25,32 +24,44 @@ function SotaraInfinityMark({ size = 40 }: { size?: number }) {
           <stop offset="100%" stopColor="#06D6A0" />
         </linearGradient>
       </defs>
-      {/* Lemniscate / infinity shape */}
       <path
         d="M50 30 C50 30 38 10 22 10 C10 10 2 18 2 30 C2 42 10 50 22 50 C38 50 50 30 50 30 Z"
-        stroke="url(#sb-grad)"
-        strokeWidth="7"
-        strokeLinecap="round"
-        fill="none"
+        stroke="url(#sb-grad)" strokeWidth="7" strokeLinecap="round" fill="none"
       />
       <path
         d="M50 30 C50 30 62 50 78 50 C90 50 98 42 98 30 C98 18 90 10 78 10 C62 10 50 30 50 30 Z"
-        stroke="url(#sb-grad)"
-        strokeWidth="7"
-        strokeLinecap="round"
-        fill="none"
+        stroke="url(#sb-grad)" strokeWidth="7" strokeLinecap="round" fill="none"
       />
     </svg>
   );
 }
 
-export default function Sidebar({ role }: { role: UserRole }) {
+interface SidebarProps {
+  role: UserRole;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ role, isOpen, onClose }: SidebarProps) {
   const items = NAV_ITEMS.filter((i) => i.roles.includes(role));
 
   return (
-    <aside style={styles.sidebar}>
-      {/* Subtle prism glow orb top */}
+    <aside
+      className={`sidebar-drawer${isOpen ? ' sidebar-open' : ''}`}
+      style={styles.sidebar}
+    >
+      {/* Glow orb */}
       <div style={styles.glowOrb} aria-hidden />
+
+      {/* Mobile close button */}
+      <button
+        className="sidebar-close-btn"
+        style={styles.closeBtn}
+        onClick={onClose}
+        aria-label="Close menu"
+      >
+        ✕
+      </button>
 
       {/* Brand */}
       <div style={styles.brand}>
@@ -58,18 +69,16 @@ export default function Sidebar({ role }: { role: UserRole }) {
         <div style={styles.brandWordmark}>SOTARA</div>
       </div>
 
-      {/* Divider */}
       <div style={styles.divider} />
 
-      {/* Section label */}
       <div style={styles.sectionLabel}>Navigation</div>
 
-      {/* Nav */}
       <nav style={styles.nav}>
         {items.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
+            onClick={onClose}
             style={({ isActive }) => ({
               ...styles.navItem,
               ...(isActive ? styles.navItemActive : {}),
@@ -91,7 +100,6 @@ export default function Sidebar({ role }: { role: UserRole }) {
         ))}
       </nav>
 
-      {/* Bottom brand mark */}
       <div style={styles.footer}>
         <div style={styles.footerInner}>
           <div style={styles.footerGradientLine} />
@@ -118,13 +126,26 @@ const styles: Record<string, React.CSSProperties> = {
   },
   glowOrb: {
     position: 'absolute',
-    top: -60,
-    left: -40,
-    width: 220,
-    height: 220,
+    top: -60, left: -40,
+    width: 220, height: 220,
     borderRadius: '50%',
     background: 'radial-gradient(circle, rgba(0,180,216,0.18) 0%, transparent 70%)',
     pointerEvents: 'none',
+  },
+  closeBtn: {
+    display: 'none', // shown via CSS on mobile
+    position: 'absolute',
+    top: 14, right: 14,
+    background: 'rgba(255,255,255,0.07)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: 8,
+    color: 'rgba(240,244,255,0.6)',
+    width: 32, height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 14,
+    cursor: 'pointer',
+    zIndex: 1,
   },
   brand: {
     padding: '28px 22px 20px',

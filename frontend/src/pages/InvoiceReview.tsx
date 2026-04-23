@@ -282,7 +282,7 @@ export default function InvoiceReview() {
         Your changes are safe.
       </div>}
 
-      <div style={styles.layout}>
+      <div style={styles.layout} className="split-layout">
         {/* Left: PDF viewer */}
         <div style={styles.pdfPanel} className="animate-rise delay-1">
           <div style={styles.pdfLabel}>§ Document</div>

@@ -14,16 +14,33 @@ function initials(name: string): string {
     .join('');
 }
 
-export default function TopBar({ profile }: { profile: Profile }) {
+interface TopBarProps {
+  profile: Profile;
+  onMenuClick: () => void;
+}
+
+export default function TopBar({ profile, onMenuClick }: TopBarProps) {
   const today = LONG_DATE.format(new Date());
 
   return (
     <header style={styles.bar}>
-      {/* Subtle prism line at bottom */}
       <div style={styles.prismLine} aria-hidden />
 
       <div style={styles.leftSide}>
-        <div style={styles.dateBadge}>
+        {/* Hamburger — hidden on desktop via CSS */}
+        <button
+          className="topbar-hamburger"
+          style={styles.hamburger}
+          onClick={onMenuClick}
+          aria-label="Open menu"
+        >
+          <span style={styles.hamburgerLine} />
+          <span style={styles.hamburgerLine} />
+          <span style={styles.hamburgerLine} />
+        </button>
+
+        {/* Date badge — hidden on mobile via CSS */}
+        <div className="topbar-date-badge" style={styles.dateBadge}>
           <span style={styles.dateLabel}>Today</span>
           <span style={styles.dateValue}>{today}</span>
         </div>
@@ -41,8 +58,8 @@ export default function TopBar({ profile }: { profile: Profile }) {
         </div>
 
         <button style={styles.signOut} onClick={signOut}>
-          Sign out
-          <span style={styles.signOutArrow} aria-hidden>→</span>
+          <span className="topbar-sign-out-text">Sign out</span>
+          <span className="topbar-sign-out-arrow" style={styles.signOutArrow} aria-hidden>→</span>
         </button>
       </div>
     </header>
@@ -59,19 +76,42 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '0 36px',
+    padding: '0 20px',
     flexShrink: 0,
     position: 'relative',
+    zIndex: 10,
   },
   prismLine: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: 0, left: 0, right: 0,
     height: 1,
     background: 'linear-gradient(90deg, transparent 0%, rgba(0,180,216,0.4) 30%, rgba(6,214,160,0.3) 70%, transparent 100%)',
   },
-  leftSide: { display: 'flex', alignItems: 'center', gap: 14 },
+  leftSide: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+  },
+  hamburger: {
+    display: 'none', // shown on mobile via CSS
+    flexDirection: 'column',
+    justifyContent: 'center',
+    gap: 5,
+    background: 'rgba(255,255,255,0.07)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: 8,
+    padding: '7px 9px',
+    cursor: 'pointer',
+    width: 38,
+    height: 38,
+  },
+  hamburgerLine: {
+    display: 'block',
+    width: 18,
+    height: 1.5,
+    background: 'rgba(240,244,255,0.7)',
+    borderRadius: 2,
+  },
   dateBadge: {
     display: 'inline-flex',
     alignItems: 'baseline',
@@ -92,8 +132,16 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'rgba(240,244,255,0.65)',
     letterSpacing: '0.01em',
   },
-  rightSide: { display: 'flex', alignItems: 'center', gap: 18 },
-  user: { display: 'flex', alignItems: 'center', gap: 12 },
+  rightSide: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+  },
+  user: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
   userMeta: {
     display: 'flex',
     flexDirection: 'column',
@@ -128,12 +176,13 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: '0.05em',
     fontFamily: 'var(--font-display)',
     boxShadow: '0 0 12px rgba(0,198,224,0.2)',
+    flexShrink: 0,
   },
   signOut: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 7,
-    padding: '7px 14px',
+    gap: 6,
+    padding: '7px 12px',
     background: 'rgba(255,255,255,0.05)',
     border: '1px solid rgba(255,255,255,0.10)',
     borderRadius: 8,
@@ -145,7 +194,7 @@ const styles: Record<string, React.CSSProperties> = {
     backdropFilter: 'blur(8px)',
   },
   signOutArrow: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'rgba(0,198,224,0.6)',
   },
 };

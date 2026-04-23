@@ -97,7 +97,7 @@ export default function FinanceDashboard() {
       </header>
 
       {/* Stat triptych */}
-      <div style={styles.stats} className="animate-rise delay-1">
+      <div style={styles.stats} className="animate-rise delay-1 stats-grid">
         <Stat
           label="Open Value"
           value={`£${totals.gross.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -117,8 +117,8 @@ export default function FinanceDashboard() {
       </div>
 
       {/* Filter + search row */}
-      <div style={styles.controls} className="animate-rise delay-2">
-        <div style={styles.tabs} role="tablist">
+      <div style={styles.controls} className="animate-rise delay-2 toolbar-row">
+        <div style={styles.tabs} role="tablist" className="filter-chips">
           {STATUS_FILTERS.map((f) => (
             <button
               key={f.value}
@@ -135,14 +135,14 @@ export default function FinanceDashboard() {
           ))}
         </div>
 
-        <div style={styles.searchWrap}>
+        <div style={{ ...styles.searchWrap, width: '100%', maxWidth: 320 }}>
           <svg width="14" height="14" viewBox="0 0 16 16" style={{ opacity: 0.5 }} aria-hidden>
             <circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
             <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
           <input
             type="text"
-            placeholder="Search supplier, ref, account…"
+            placeholder="Search supplier, ref…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={styles.searchInput}
@@ -159,87 +159,79 @@ export default function FinanceDashboard() {
       ) : filtered.length === 0 ? (
         <EmptyState filter={statusFilter} hasSearch={!!search.trim()} />
       ) : (
-        <div style={styles.tableWrap} className="animate-rise delay-3">
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Supplier</th>
-                <th style={styles.th}>Invoice Ref</th>
-                <th style={styles.th}>Invoice Date</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>Gross</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Approver</th>
-                <th style={styles.th}>Received</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((inv, idx) => {
-                const approver = inv.approver as { display_name?: string } | null;
-                const zebra = idx % 2 === 1;
-                return (
-                  <tr
-                    key={inv.id}
-                    style={{
-                      ...styles.row,
-                      ...(zebra ? styles.rowZebra : {}),
-                    }}
-                    onClick={() => navigate(`/invoices/${inv.id}`)}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = 'var(--accent-soft)';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = zebra
-                        ? 'rgba(228, 221, 203, 0.25)'
-                        : 'transparent';
-                    }}
-                  >
-                    <td style={styles.td}>
-                      <div style={styles.supplierName}>{inv.supplier_name ?? '—'}</div>
-                      {inv.account_number && (
-                        <div style={styles.accountNum}>{inv.account_number}</div>
-                      )}
-                    </td>
-                    <td style={{ ...styles.td, ...styles.mono }}>
-                      {inv.transaction_reference ?? <span style={styles.muted}>—</span>}
-                    </td>
-                    <td style={styles.td}>
-                      {inv.transaction_date ? fmtDate(inv.transaction_date) : <span style={styles.muted}>—</span>}
-                    </td>
-                    <td style={{ ...styles.td, ...styles.moneyCell }}>
-                      {fmtMoney(inv.gross_amount)}
-                    </td>
-                    <td style={styles.td}>
-                      <StatusBadge status={inv.status} />
-                    </td>
-                    <td style={styles.td}>
-                      {approver?.display_name
-                        ? <span style={styles.approverName}>{approver.display_name}</span>
-                        : <span style={styles.unassigned}>— Unassigned</span>}
-                    </td>
-                    <td style={{ ...styles.td, color: 'var(--ink-muted)' }}>
-                      {fmtDate(inv.created_at)}
-                    </td>
-                    <td style={{ ...styles.td, textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                      <button
-                        style={styles.rowBtnPrimary}
-                        onClick={() => navigate(`/invoices/${inv.id}`)}
-                      >
-                        Review
-                        <span style={{ opacity: 0.6, marginLeft: 4 }}>→</span>
-                      </button>
-                      <button
-                        style={styles.rowBtn}
-                        onClick={() => navigate(`/audit/${inv.id}`)}
-                      >
-                        Audit
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="animate-rise delay-3">
+          {/* Desktop table */}
+          <div style={styles.tableWrap} className="desktop-table table-scroll-wrapper">
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Supplier</th>
+                  <th style={styles.th}>Invoice Ref</th>
+                  <th style={styles.th}>Invoice Date</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>Gross</th>
+                  <th style={styles.th}>Status</th>
+                  <th style={styles.th}>Approver</th>
+                  <th style={styles.th}>Received</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((inv, idx) => {
+                  const approver = inv.approver as { display_name?: string } | null;
+                  const zebra = idx % 2 === 1;
+                  return (
+                    <tr
+                      key={inv.id}
+                      style={{ ...styles.row, ...(zebra ? styles.rowZebra : {}) }}
+                      onClick={() => navigate(`/invoices/${inv.id}`)}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--accent-soft)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = zebra ? 'rgba(228,221,203,0.25)' : 'transparent'; }}
+                    >
+                      <td style={styles.td}>
+                        <div style={styles.supplierName}>{inv.supplier_name ?? '—'}</div>
+                        {inv.account_number && <div style={styles.accountNum}>{inv.account_number}</div>}
+                      </td>
+                      <td style={{ ...styles.td, ...styles.mono }}>{inv.transaction_reference ?? <span style={styles.muted}>—</span>}</td>
+                      <td style={styles.td}>{inv.transaction_date ? fmtDate(inv.transaction_date) : <span style={styles.muted}>—</span>}</td>
+                      <td style={{ ...styles.td, ...styles.moneyCell }}>{fmtMoney(inv.gross_amount)}</td>
+                      <td style={styles.td}><StatusBadge status={inv.status} /></td>
+                      <td style={styles.td}>{approver?.display_name ? <span style={styles.approverName}>{approver.display_name}</span> : <span style={styles.unassigned}>— Unassigned</span>}</td>
+                      <td style={{ ...styles.td, color: 'var(--ink-muted)' }}>{fmtDate(inv.created_at)}</td>
+                      <td style={{ ...styles.td, textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                        <button style={styles.rowBtnPrimary} onClick={() => navigate(`/invoices/${inv.id}`)}>Review <span style={{ opacity: 0.6 }}>→</span></button>
+                        <button style={styles.rowBtn} onClick={() => navigate(`/audit/${inv.id}`)}>Audit</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile card list */}
+          <div className="mobile-cards" style={{ ...styles.tableWrap, display: 'none' }}>
+            {filtered.map((inv) => {
+              const approver = inv.approver as { display_name?: string } | null;
+              return (
+                <div key={inv.id} className="mobile-card-row" onClick={() => navigate(`/invoices/${inv.id}`)}>
+                  <div className="mobile-card-row-top">
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>{inv.supplier_name ?? '—'}</div>
+                      {inv.transaction_reference && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-faint)', marginTop: 2 }}>{inv.transaction_reference}</div>}
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{fmtMoney(inv.gross_amount)}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 3 }}>{inv.transaction_date ? fmtDate(inv.transaction_date) : '—'}</div>
+                    </div>
+                  </div>
+                  <div className="mobile-card-row-meta">
+                    <StatusBadge status={inv.status} />
+                    {approver?.display_name && <span style={{ fontSize: 11, color: 'var(--ink-faint)' }}>{approver.display_name}</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

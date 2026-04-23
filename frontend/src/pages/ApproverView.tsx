@@ -117,7 +117,7 @@ export default function ApproverView() {
         <span>Finance has validated all details. This page shows them for confirmation.</span>
       </div>
 
-      <div style={styles.layout}>
+      <div style={styles.layout} className="split-layout">
         {/* Left: PDF */}
         <div style={styles.pdfPanel} className="animate-rise delay-1">
           <div style={styles.pdfLabel}>§ Document</div>

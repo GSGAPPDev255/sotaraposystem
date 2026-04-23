@@ -79,7 +79,7 @@ export default function ExpenseDashboard() {
   return (
     <div>
       {/* Header */}
-      <header style={styles.masthead} className="animate-rise">
+      <header style={styles.masthead} className="animate-rise page-masthead">
         <div>
           <div style={styles.pageEyebrow}>Expense Management</div>
           <h1 style={styles.pageTitle}>Expenses</h1>
@@ -95,7 +95,7 @@ export default function ExpenseDashboard() {
       </header>
 
       {/* Stat cards */}
-      <div style={styles.statsRow} className="animate-rise delay-1">
+      <div style={styles.statsRow} className="animate-rise delay-1 stats-grid">
         {[
           { label: 'Total Value',       value: fmtMoney(totals.total),           color: 'var(--accent)' },
           { label: 'Awaiting Action',   value: String(totals.pending),            color: 'var(--warning)' },
@@ -114,8 +114,8 @@ export default function ExpenseDashboard() {
       </div>
 
       {/* Filters + Search */}
-      <div style={styles.toolbar} className="animate-rise delay-2">
-        <div style={styles.filterChips}>
+      <div style={styles.toolbar} className="animate-rise delay-2 toolbar-row">
+        <div style={styles.filterChips} className="filter-chips">
           {STATUS_FILTERS.map(f => (
             <button
               key={f.value}
@@ -138,7 +138,7 @@ export default function ExpenseDashboard() {
         />
       </div>
 
-      {/* Table */}
+      {/* Table / Cards */}
       <div className="card animate-rise delay-3" style={{ overflow: 'hidden' }}>
         {isLoading ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-faint)' }}>
@@ -152,63 +152,80 @@ export default function ExpenseDashboard() {
             <div style={{ fontSize: 12, marginTop: 6, opacity: 0.6 }}>Upload a receipt to get started</div>
           </div>
         ) : (
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                {['Employee', 'Merchant', 'Category', 'Receipt Date', 'Amount', 'Approver', 'Status', ''].map(h => (
-                  <th key={h} style={styles.th}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((exp, i) => {
+          <>
+            {/* Desktop table */}
+            <div className="desktop-table table-scroll-wrapper">
+              <table style={{ ...styles.table, display: 'table' }}>
+                <thead>
+                  <tr>
+                    {['Employee', 'Merchant', 'Category', 'Receipt Date', 'Amount', 'Approver', 'Status', ''].map(h => (
+                      <th key={h} style={styles.th}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((exp, i) => {
+                    const st = STATUS_STYLE[exp.status];
+                    const approver = (exp as { approver?: { display_name?: string } }).approver;
+                    return (
+                      <tr key={exp.id} style={{ ...styles.tr, animationDelay: `${i * 0.03}s` }} onClick={() => navigate(`/expenses/${exp.id}`)}>
+                        <td style={styles.td}>
+                          <div style={{ fontWeight: 500, color: 'var(--ink-soft)' }}>{exp.employee_name ?? exp.employee_email}</div>
+                          {exp.employee_name && <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 2 }}>{exp.employee_email}</div>}
+                        </td>
+                        <td style={styles.td}>{exp.merchant_name ?? <span style={{ color: 'var(--ink-faint)' }}>—</span>}</td>
+                        <td style={styles.td}><span style={{ fontSize: 12 }}>{LABELS[exp.category] ?? exp.category}</span></td>
+                        <td style={styles.td}>{fmtDate(exp.receipt_date)}</td>
+                        <td style={{ ...styles.td, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--ink)' }}>{fmtMoney(exp.amount, exp.currency)}</td>
+                        <td style={styles.td}>{approver?.display_name ?? <span style={{ color: 'var(--ink-faint)' }}>Unassigned</span>}</td>
+                        <td style={styles.td}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 9px 3px 8px', borderRadius: 999, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: st.text, background: st.bg, border: `1px solid ${st.border}` }}>
+                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: st.dot }} />
+                            {st.label}
+                          </span>
+                        </td>
+                        <td style={{ ...styles.td, textAlign: 'right' }}>
+                          <button style={{ padding: '5px 12px', fontSize: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer', color: 'var(--ink-muted)' }} onClick={e => { e.stopPropagation(); navigate(`/expenses/${exp.id}`); }}>
+                            Review →
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card list */}
+            <div className="mobile-cards" style={{ display: 'none' }}>
+              {filtered.map(exp => {
                 const st = STATUS_STYLE[exp.status];
                 const approver = (exp as { approver?: { display_name?: string } }).approver;
                 return (
-                  <tr
-                    key={exp.id}
-                    style={{ ...styles.tr, animationDelay: `${i * 0.03}s` }}
-                    onClick={() => navigate(`/expenses/${exp.id}`)}
-                  >
-                    <td style={styles.td}>
-                      <div style={{ fontWeight: 500, color: 'var(--ink-soft)' }}>{exp.employee_name ?? exp.employee_email}</div>
-                      {exp.employee_name && <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 2 }}>{exp.employee_email}</div>}
-                    </td>
-                    <td style={styles.td}>{exp.merchant_name ?? <span style={{ color: 'var(--ink-faint)' }}>—</span>}</td>
-                    <td style={styles.td}>
-                      <span style={{ fontSize: 12 }}>{LABELS[exp.category] ?? exp.category}</span>
-                    </td>
-                    <td style={styles.td}>{fmtDate(exp.receipt_date)}</td>
-                    <td style={{ ...styles.td, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--ink)' }}>
-                      {fmtMoney(exp.amount, exp.currency)}
-                    </td>
-                    <td style={styles.td}>
-                      {approver?.display_name ?? <span style={{ color: 'var(--ink-faint)' }}>Unassigned</span>}
-                    </td>
-                    <td style={styles.td}>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '3px 9px 3px 8px', borderRadius: 999,
-                        fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em',
-                        color: st.text, background: st.bg, border: `1px solid ${st.border}`,
-                      }}>
-                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: st.dot }} />
+                  <div key={exp.id} className="mobile-card-row" onClick={() => navigate(`/expenses/${exp.id}`)}>
+                    <div className="mobile-card-row-top">
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>{exp.merchant_name ?? '—'}</div>
+                        <div style={{ fontSize: 12, color: 'var(--ink-faint)', marginTop: 2 }}>{exp.employee_name ?? exp.employee_email}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>{fmtMoney(exp.amount, exp.currency)}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 2 }}>{fmtDate(exp.receipt_date)}</div>
+                      </div>
+                    </div>
+                    <div className="mobile-card-row-meta">
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: st.text, background: st.bg, border: `1px solid ${st.border}` }}>
+                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: st.dot }} />
                         {st.label}
                       </span>
-                    </td>
-                    <td style={{ ...styles.td, textAlign: 'right' }}>
-                      <button
-                        style={{ padding: '5px 12px', fontSize: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer', color: 'var(--ink-muted)' }}
-                        onClick={e => { e.stopPropagation(); navigate(`/expenses/${exp.id}`); }}
-                      >
-                        Review →
-                      </button>
-                    </td>
-                  </tr>
+                      {approver?.display_name && <span style={{ fontSize: 11, color: 'var(--ink-faint)' }}>{approver.display_name}</span>}
+                      <span style={{ fontSize: 11, color: 'var(--ink-faint)' }}>{LABELS[exp.category] ?? exp.category}</span>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -244,7 +261,7 @@ function UploadModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div style={styles.modalBackdrop} onClick={onClose}>
-      <div style={styles.modal} onClick={e => e.stopPropagation()} className="animate-rise">
+      <div style={styles.modal} className="animate-rise modal-sheet" onClick={e => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <h2 style={{ margin: 0, fontSize: 18, fontFamily: 'var(--font-display)' }}>Upload Receipt</h2>
           <button style={{ background: 'none', border: 'none', color: 'var(--ink-faint)', fontSize: 20, cursor: 'pointer' }} onClick={onClose}>×</button>
