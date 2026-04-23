@@ -295,3 +295,18 @@
     display: none !important;
   }
 }
+
+/* ── My Expenses staff portal — stat grid 2-col on narrow screens ─────────── */
+@media (max-width: 500px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* ── MyExpenseDetail split layout — stack on mobile ────────────────────────── */
+@media (max-width: 767px) {
+  .my-expense-split {
+    grid-template-columns: 1fr !important;
+  }
+}
+

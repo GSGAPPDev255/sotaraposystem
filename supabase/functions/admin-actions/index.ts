@@ -15,23 +15,46 @@ Deno.serve(async (req) => {
   const corsRes = handleCors(req);
   if (corsRes) return corsRes;
 
-  // Verify caller is an authenticated admin
+  // Verify caller is an authenticated admin — verbose errors to aid debugging
   const authHeader = req.headers.get('Authorization') ?? '';
-  const token = authHeader.replace('Bearer ', '');
+  const token = authHeader.replace('Bearer ', '').trim();
 
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) {
-    return json({ error: 'Unauthorized' }, 401);
+  if (!token) {
+    return json({ error: 'Unauthorized: missing Authorization header' }, 401);
   }
 
-  const { data: profile } = await supabaseAdmin
+  const { data: userData, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !userData?.user) {
+    return json({
+      error: 'Unauthorized: token rejected by Supabase Auth',
+      detail: authError?.message ?? 'no user returned',
+      token_length: token.length,
+      token_prefix: token.slice(0, 12),
+    }, 401);
+  }
+  const user = userData.user;
+
+  const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single();
 
+  if (profileError) {
+    return json({
+      error: 'Profile lookup failed',
+      detail: profileError.message,
+      user_id: user.id,
+      user_email: user.email,
+    }, 500);
+  }
+
   if (profile?.role !== 'admin') {
-    return json({ error: 'Forbidden: admin role required' }, 403);
+    return json({
+      error: 'Forbidden: admin role required',
+      your_role: profile?.role ?? 'none',
+      user_email: user.email,
+    }, 403);
   }
 
   let body: Record<string, unknown>;

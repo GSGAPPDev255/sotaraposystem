@@ -45,7 +45,7 @@ export function useExpenses(status?: ExpenseStatus) {
 
 // ── Fetch single ──────────────────────────────────────────────────────────────
 
-export function useExpense(id: string) {
+export function useExpense(id: string, options?: { refetchInterval?: number | false }) {
   return useQuery({
     queryKey: ['expense', id],
     queryFn: async () => {
@@ -64,6 +64,7 @@ export function useExpense(id: string) {
     },
     enabled: !!id,
     staleTime: 10_000,
+    refetchInterval: options?.refetchInterval ?? false,
   });
 }
 

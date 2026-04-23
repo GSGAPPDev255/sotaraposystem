@@ -85,7 +85,7 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
     height: 1,
-    background: 'linear-gradient(90deg, transparent 0%, rgba(0,180,216,0.4) 30%, rgba(6,214,160,0.3) 70%, transparent 100%)',
+    background: 'linear-gradient(90deg, transparent 0%, rgba(0,180,216,0.5) 20%, rgba(6,214,160,0.4) 50%, rgba(123,97,255,0.3) 80%, transparent 100%)',
   },
   leftSide: {
     display: 'flex',

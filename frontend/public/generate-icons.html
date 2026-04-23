@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<!--
+  Sotara — Icon Generator
+  Open this file in a browser, then right-click → "Save image as" on each canvas
+  to produce icon-192.png, icon-512.png, and apple-touch-icon.png.
+  Place the saved files in /public/ before deploying.
+-->
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>Generate Sotara Icons</title>
+  <style>
+    body { background:#111; color:#eee; font-family:sans-serif; padding:40px; }
+    h1 { color:#00C6E0; }
+    .row { display:flex; gap:40px; flex-wrap:wrap; margin-top:32px; }
+    .item { display:flex; flex-direction:column; align-items:center; gap:12px; }
+    label { font-size:13px; color:#aaa; }
+    button {
+      margin-top:8px; padding:8px 18px;
+      background:#00C6E0; color:#000; border:none;
+      border-radius:8px; cursor:pointer; font-weight:600; font-size:13px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sotara Icon Generator</h1>
+  <p>Right-click a canvas or use the Download button. Save with the filename shown below it.</p>
+  <div class="row" id="row"></div>
+
+  <script>
+    const BG   = '#070918';
+    const CYAN = '#00B4D8';
+    const TEAL = '#06D6A0';
+
+    function drawIcon(size) {
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      const ctx = c.getContext('2d');
+      const r = size * 0.22; // corner radius
+
+      // Rounded rect background
+      ctx.beginPath();
+      ctx.roundRect(0, 0, size, size, r);
+      ctx.fillStyle = BG;
+      ctx.fill();
+
+      // Radial glow
+      const glow = ctx.createRadialGradient(size/2, size*0.44, 0, size/2, size*0.44, size*0.55);
+      glow.addColorStop(0,   'rgba(0,180,216,0.18)');
+      glow.addColorStop(1,   'rgba(7,9,24,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.roundRect(0, 0, size, size, r);
+      ctx.fill();
+
+      // Infinity gradient
+      const ig = ctx.createLinearGradient(0, 0, size, size);
+      ig.addColorStop(0,   CYAN);
+      ig.addColorStop(0.5, '#0EA5E9');
+      ig.addColorStop(1,   TEAL);
+
+      const s = size / 512;
+      ctx.strokeStyle = ig;
+      ctx.lineWidth   = 34 * s;
+      ctx.lineCap     = 'round';
+      ctx.lineJoin    = 'round';
+      ctx.shadowColor = CYAN;
+      ctx.shadowBlur  = 18 * s;
+
+      // Left lobe
+      ctx.beginPath();
+      ctx.moveTo(256*s, 256*s);
+      ctx.bezierCurveTo(256*s, 256*s, 198*s, 152*s, 122*s, 152*s);
+      ctx.bezierCurveTo( 66*s, 152*s,  20*s, 196*s,  20*s, 256*s);
+      ctx.bezierCurveTo( 20*s, 316*s,  66*s, 360*s, 122*s, 360*s);
+      ctx.bezierCurveTo(198*s, 360*s, 256*s, 256*s, 256*s, 256*s);
+      ctx.stroke();
+
+      // Right lobe
+      ctx.shadowColor = TEAL;
+      ctx.beginPath();
+      ctx.moveTo(256*s, 256*s);
+      ctx.bezierCurveTo(256*s, 256*s, 314*s, 360*s, 390*s, 360*s);
+      ctx.bezierCurveTo(446*s, 360*s, 492*s, 316*s, 492*s, 256*s);
+      ctx.bezierCurveTo(492*s, 196*s, 446*s, 152*s, 390*s, 152*s);
+      ctx.bezierCurveTo(314*s, 152*s, 256*s, 256*s, 256*s, 256*s);
+      ctx.stroke();
+
+      return c;
+    }
+
+    const specs = [
+      { size: 192, filename: 'icon-192.png',       label: 'Android / Chrome (192×192)' },
+      { size: 512, filename: 'icon-512.png',       label: 'Android / Chrome (512×512)' },
+      { size: 180, filename: 'apple-touch-icon.png', label: 'iOS Safari (180×180)' },
+    ];
+
+    specs.forEach(({ size, filename, label }) => {
+      const canvas = drawIcon(size);
+      const item = document.createElement('div');
+      item.className = 'item';
+
+      const lbl = document.createElement('label');
+      lbl.textContent = label;
+
+      const fname = document.createElement('code');
+      fname.style.cssText = 'color:#06D6A0;font-size:12px;';
+      fname.textContent = filename;
+
+      const btn = document.createElement('button');
+      btn.textContent = 'Download ' + filename;
+      btn.onclick = () => {
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = filename;
+        a.click();
+      };
+
+      item.append(lbl, canvas, fname, btn);
+      document.getElementById('row').appendChild(item);
+    });
+  </script>
+</body>
+</html>

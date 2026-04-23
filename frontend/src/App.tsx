@@ -14,6 +14,8 @@ import ExpenseDashboard from './pages/ExpenseDashboard';
 import ExpenseReview from './pages/ExpenseReview';
 import ExpenseApprovalView from './pages/ExpenseApprovalView';
 import ExpenseExport from './pages/ExpenseExport';
+import MyExpenses from './pages/MyExpenses';
+import MyExpenseDetail from './pages/MyExpenseDetail';
 
 const PROFILE_CACHE_KEY = 'posystem_profile_cache';
 
@@ -140,7 +142,11 @@ export default function App() {
       {/* Public login */}
       <Route
         path="/login"
-        element={profile ? <Navigate to="/dashboard" replace /> : <Login />}
+        element={
+          profile
+            ? <Navigate to={profile.role === 'staff' ? '/my-expenses' : '/dashboard'} replace />
+            : <Login />
+        }
       />
 
       {/* Approver view — invoice */}
@@ -178,8 +184,41 @@ export default function App() {
           profile ? (
             <AppShell profile={profile}>
               <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<FinanceDashboard />} />
+                {/* Root redirect — staff go to their portal, everyone else to dashboard */}
+                <Route
+                  path="/"
+                  element={
+                    <Navigate to={profile.role === 'staff' ? '/my-expenses' : '/dashboard'} replace />
+                  }
+                />
+
+                {/* ── Staff-only routes ────────────────────────────── */}
+                <Route
+                  path="/my-expenses"
+                  element={
+                    profile.role === 'staff'
+                      ? <MyExpenses />
+                      : <Navigate to="/dashboard" replace />
+                  }
+                />
+                <Route
+                  path="/my-expenses/:id"
+                  element={
+                    profile.role === 'staff'
+                      ? <MyExpenseDetail />
+                      : <Navigate to="/dashboard" replace />
+                  }
+                />
+
+                {/* ── Finance / admin / auditor routes ─────────────── */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    profile.role !== 'staff'
+                      ? <FinanceDashboard />
+                      : <Navigate to="/my-expenses" replace />
+                  }
+                />
                 <Route path="/invoices/:id" element={<InvoiceReview />} />
                 <Route path="/export" element={<ExportManagement />} />
                 <Route path="/audit/:id" element={<AuditTrailViewer />} />
@@ -194,7 +233,13 @@ export default function App() {
                       : <Navigate to="/dashboard" replace />
                   }
                 />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+                <Route
+                  path="*"
+                  element={
+                    <Navigate to={profile.role === 'staff' ? '/my-expenses' : '/dashboard'} replace />
+                  }
+                />
               </Routes>
             </AppShell>
           ) : (
@@ -223,7 +268,8 @@ function AuthCallback({ onProfile }: { onProfile: (p: Profile | null) => void })
                 const p = (data as Profile) ?? null;
                 setCachedProfile(p);
                 onProfile(p);
-                navigate('/dashboard', { replace: true });
+                const dest = p?.role === 'staff' ? '/my-expenses' : '/dashboard';
+                navigate(dest, { replace: true });
               },
               () => {
                 onProfile(null);

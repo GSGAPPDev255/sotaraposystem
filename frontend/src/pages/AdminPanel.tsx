@@ -14,13 +14,14 @@ type Tab = 'users' | 'approvers' | 'alerts' | 'system';
 
 interface SystemSetting { key: string; value: string; description: string }
 
-const ROLE_OPTIONS: UserRole[] = ['admin', 'finance', 'approver', 'auditor'];
+const ROLE_OPTIONS: UserRole[] = ['admin', 'finance', 'approver', 'auditor', 'staff'];
 
 const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   admin:    'Full system access — manage users, settings, exports',
   finance:  'Review invoices, assign approvers, generate CSV exports',
   approver: 'Approve or reject invoices assigned to them',
   auditor:  'Read-only access to all records and audit trail',
+  staff:    'Submit and track personal expense claims only',
 };
 
 const ROLE_TINTS: Record<UserRole, { bg: string; color: string; border: string }> = {
@@ -28,6 +29,7 @@ const ROLE_TINTS: Record<UserRole, { bg: string; color: string; border: string }
   finance:  { bg: 'var(--info-soft)',    color: 'var(--info)',    border: 'rgba(45, 85, 114, 0.25)' },
   approver: { bg: 'var(--success-soft)', color: 'var(--success)', border: 'rgba(58, 106, 63, 0.25)' },
   auditor:  { bg: 'var(--accent-soft)',  color: 'var(--accent-text)', border: 'rgba(181, 78, 28, 0.25)' },
+  staff:    { bg: 'rgba(139,92,246,0.1)', color: '#A78BFA', border: 'rgba(139,92,246,0.25)' },
 };
 
 const TAB_META: { id: Tab; number: string; label: string }[] = [
@@ -298,24 +300,39 @@ function UsersTab() {
 
 // ─── Approvers Tab ────────────────────────────────────────────────────────────
 
-interface NewApprover  { display_name: string; email: string; department: string }
+interface GalUser {
+  azure_oid: string;
+  display_name: string;
+  email: string;
+  department: string | null;
+  job_title: string | null;
+}
+
 interface EditApprover { display_name: string; email: string; department: string }
-const EMPTY_NEW: NewApprover = { display_name: '', email: '', department: '' };
 
 function ApproversTab() {
-  const [approvers, setApprovers]     = useState<Approver[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [syncing, setSyncing]         = useState(false);
-  const [saving, setSaving]           = useState(false);
-  const [removing, setRemoving]       = useState<string | null>(null);
-  const [showAdd, setShowAdd]         = useState(false);
+  const [approvers, setApprovers]       = useState<Approver[]>([]);
+  const [loading, setLoading]           = useState(true);
   const [showInactive, setShowInactive] = useState(false);
-  const [form, setForm]               = useState<NewApprover>(EMPTY_NEW);
-  const [editingId, setEditingId]     = useState<string | null>(null);
-  const [editForm, setEditForm]       = useState<EditApprover>({ display_name: '', email: '', department: '' });
-  const [editSaving, setEditSaving]   = useState(false);
-  const [msg, setMsg]                 = useState('');
-  const [msgType, setMsgType]         = useState<'success' | 'error'>('success');
+  const [removing, setRemoving]         = useState<string | null>(null);
+  const [editingId, setEditingId]       = useState<string | null>(null);
+  const [editForm, setEditForm]         = useState<EditApprover>({ display_name: '', email: '', department: '' });
+  const [editSaving, setEditSaving]     = useState(false);
+
+  // GAL search state
+  const [searchQuery, setSearchQuery]   = useState('');
+  const [searching, setSearching]       = useState(false);
+  const [galResults, setGalResults]     = useState<GalUser[] | null>(null);
+  const [galError, setGalError]         = useState<string | null>(null);
+  const [adding, setAdding]             = useState<string | null>(null);
+
+  // Manual add state
+  const [showManual, setShowManual]     = useState(false);
+  const [manualForm, setManualForm]     = useState({ display_name: '', email: '', department: '' });
+  const [manualSaving, setManualSaving] = useState(false);
+
+  const [msg, setMsg]     = useState('');
+  const [msgType, setMsgType] = useState<'success' | 'error'>('success');
 
   function flash(m: string, type: 'success' | 'error' = 'success') {
     setMsg(m); setMsgType(type);
@@ -328,10 +345,10 @@ function ApproversTab() {
       let query = supabase.from('approvers').select('*').order('display_name');
       if (!includeInactive) query = query.eq('is_active', true);
       const { data, error } = await query;
-      if (error) { setMsg('Could not load approvers: ' + error.message); setMsgType('error'); }
+      if (error) { flash('Could not load approvers: ' + error.message, 'error'); }
       setApprovers((data as Approver[]) ?? []);
     } catch (e) {
-      setMsg('Load failed: ' + (e as Error).message); setMsgType('error');
+      flash('Load failed: ' + (e as Error).message, 'error');
     } finally {
       setLoading(false);
     }
@@ -339,14 +356,70 @@ function ApproversTab() {
 
   useEffect(() => { load(showInactive); }, [load, showInactive]);
 
-  async function triggerSync() {
-    setSyncing(true);
+  // Search the GAL via admin-actions edge function
+  async function searchGal() {
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) return;
+    setSearching(true);
+    setGalResults(null);
+    setGalError(null);
     try {
-      const { error } = await supabase.functions.invoke('sync-approvers', { method: 'POST' });
-      if (error) flash('Sync error: ' + error.message, 'error');
-      else { flash('Sync complete — approver list refreshed from Azure AD.'); await load(showInactive); }
-    } catch (e) { flash('Sync failed: ' + (e as Error).message, 'error'); }
-    setSyncing(false);
+      const { data, error } = await supabase.functions.invoke('admin-actions', {
+        body: { action: 'search_gal', query: searchQuery.trim() },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setGalResults(data.users ?? []);
+    } catch (e) {
+      setGalError((e as Error).message);
+    }
+    setSearching(false);
+  }
+
+  // Add a specific person from search results as an approver
+  async function addFromGal(user: GalUser) {
+    setAdding(user.azure_oid);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-actions', {
+        body: {
+          action:       'add_approver',
+          azure_oid:    user.azure_oid,
+          display_name: user.display_name,
+          email:        user.email,
+          department:   user.department,
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      flash(`${user.display_name} added as approver.`);
+      await load(showInactive);
+    } catch (e) {
+      flash('Error: ' + (e as Error).message, 'error');
+    }
+    setAdding(null);
+  }
+
+  // Add manual approver (for non-AD users)
+  async function addManual() {
+    const { display_name, email, department } = manualForm;
+    if (!display_name.trim() || !email.trim()) {
+      flash('Name and email are required.', 'error'); return;
+    }
+    setManualSaving(true);
+    const { error } = await supabase.from('approvers').insert({
+      display_name: display_name.trim(),
+      email:        email.trim().toLowerCase(),
+      department:   department.trim() || null,
+      is_active:    true,
+      synced_at:    new Date().toISOString(),
+    });
+    if (error) flash('Error: ' + error.message, 'error');
+    else {
+      flash('Approver added.');
+      setManualForm({ display_name: '', email: '', department: '' });
+      setShowManual(false);
+      await load(showInactive);
+    }
+    setManualSaving(false);
   }
 
   async function toggleApprover(id: string, current: boolean) {
@@ -357,33 +430,10 @@ function ApproversTab() {
     setRemoving(null);
   }
 
-  async function addApprover() {
-    if (!form.display_name.trim() || !form.email.trim()) {
-      flash('Name and email are required.', 'error');
-      return;
-    }
-    setSaving(true);
-    const { error } = await supabase.from('approvers').insert({
-      azure_oid:    null,
-      display_name: form.display_name.trim(),
-      email:        form.email.trim().toLowerCase(),
-      department:   form.department.trim() || null,
-      is_active:    true,
-      synced_at:    new Date().toISOString(),
-    });
-    if (error) flash('Error: ' + error.message, 'error');
-    else { flash('Approver added.'); setForm(EMPTY_NEW); setShowAdd(false); await load(showInactive); }
-    setSaving(false);
-  }
-
   function startEdit(a: Approver) {
     setEditingId(a.id);
-    setEditForm({
-      display_name: a.display_name,
-      email:        a.email,
-      department:   a.department ?? '',
-    });
-    setShowAdd(false);
+    setEditForm({ display_name: a.display_name, email: a.email, department: a.department ?? '' });
+    setShowManual(false);
   }
 
   function cancelEdit() {
@@ -393,8 +443,7 @@ function ApproversTab() {
 
   async function saveEdit(id: string) {
     if (!editForm.display_name.trim() || !editForm.email.trim()) {
-      flash('Name and email are required.', 'error');
-      return;
+      flash('Name and email are required.', 'error'); return;
     }
     setEditSaving(true);
     const { error } = await supabase.from('approvers').update({
@@ -407,63 +456,143 @@ function ApproversTab() {
     setEditSaving(false);
   }
 
+  // Check if a GAL user is already an approver
+  const existingEmails = new Set(approvers.map((a) => a.email.toLowerCase()));
+
   if (loading) return <div style={s.loading}>Loading approvers…</div>;
 
   return (
     <div>
       <SectionHeader
         title="Approvers"
-        subtitle="People who can approve invoices. Add individually or import from Microsoft 365."
+        subtitle="Pick individuals from your Microsoft 365 directory. Only the people you choose will appear as approvers."
         msg={msg}
         msgType={msgType}
         actions={
           <>
             <label style={s.toggleLabel}>
-              <input
-                type="checkbox"
-                checked={showInactive}
-                onChange={(e) => setShowInactive(e.target.checked)}
-                style={{ marginRight: 6 }}
-              />
+              <input type="checkbox" checked={showInactive}
+                onChange={(e) => setShowInactive(e.target.checked)} style={{ marginRight: 6 }} />
               Show inactive
             </label>
-            <button className="btn" style={s.btnSecondary} onClick={() => { setShowAdd((v) => !v); cancelEdit(); }}>
-              {showAdd ? 'Cancel' : '+ Add manually'}
-            </button>
-            <button className="btn" style={s.btnPrimary} onClick={triggerSync} disabled={syncing}>
-              {syncing ? 'Importing…' : 'Import from Microsoft 365 ↓'}
+            <button className="btn" style={s.btnSecondary}
+              onClick={() => { setShowManual((v) => !v); cancelEdit(); }}>
+              {showManual ? 'Cancel' : '+ Add manually'}
             </button>
           </>
         }
       />
 
-      {showAdd && (
+      {/* ── GAL Search panel ── */}
+      <div style={ap.searchPanel}>
+        <div style={ap.searchKicker}>§ Search Microsoft 365 directory</div>
+        <div style={ap.searchTitle}>Find & add approvers</div>
+        <div style={ap.searchSub}>
+          Type a name or email to search your organisation's directory. Only selected individuals are added.
+        </div>
+        <div style={ap.searchRow}>
+          <input
+            style={ap.searchInput}
+            type="text"
+            placeholder="e.g. Jane Smith or jane@school.com"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && searchGal()}
+          />
+          <button className="btn" style={s.btnPrimary} onClick={searchGal}
+            disabled={searching || searchQuery.trim().length < 2}>
+            {searching ? 'Searching…' : 'Search →'}
+          </button>
+        </div>
+
+        {/* Search results */}
+        {galError && (
+          <div style={ap.galError}>
+            <strong>Search failed:</strong> {galError}
+            {galError.includes('Graph API') && (
+              <div style={{ marginTop: 6, fontSize: 11 }}>
+                Ensure Azure AD app has <code style={s.code}>User.Read.All</code> Application permission with admin consent.
+              </div>
+            )}
+          </div>
+        )}
+
+        {galResults !== null && galResults.length === 0 && !galError && (
+          <div style={ap.galEmpty}>No matching users found for "{searchQuery}"</div>
+        )}
+
+        {galResults && galResults.length > 0 && (
+          <div style={ap.galResults}>
+            <div style={ap.galResultsLabel}>{galResults.length} result{galResults.length !== 1 ? 's' : ''}</div>
+            {galResults.map((user) => {
+              const alreadyAdded = existingEmails.has(user.email?.toLowerCase() ?? '');
+              return (
+                <div key={user.azure_oid} style={ap.galRow}>
+                  <div style={ap.galAvatar}>
+                    {(user.display_name || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <div style={ap.galInfo}>
+                    <div style={ap.galName}>{user.display_name}</div>
+                    <div style={ap.galMeta}>
+                      <span style={ap.galEmail}>{user.email}</span>
+                      {user.department && <span style={ap.galDept}>· {user.department}</span>}
+                      {user.job_title && <span style={ap.galDept}>· {user.job_title}</span>}
+                    </div>
+                  </div>
+                  <div style={ap.galAction}>
+                    {alreadyAdded ? (
+                      <span style={ap.alreadyAdded}>✓ Added</span>
+                    ) : (
+                      <button className="btn" style={ap.addBtn}
+                        disabled={adding === user.azure_oid}
+                        onClick={() => addFromGal(user)}>
+                        {adding === user.azure_oid ? 'Adding…' : '+ Add'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Manual add form ── */}
+      {showManual && (
         <div style={s.addForm} className="animate-rise">
           <div style={s.addFormKicker}>§ Manual approver</div>
-          <div style={s.addFormTitle}>Add a manual approver</div>
-          <div style={s.formGrid}>
+          <div style={s.addFormTitle}>Add without Microsoft 365</div>
+          <div style={s.addFormSub}>For external approvers not in your Azure AD directory.</div>
+          <div style={{ ...s.formGrid, marginTop: 14 }}>
             <div style={s.formGroup}>
               <label style={s.label}>Full name *</label>
-              <input style={s.input} value={form.display_name} placeholder="e.g. Jane Smith"
-                onChange={(e) => setForm({ ...form, display_name: e.target.value })} />
+              <input style={s.input} value={manualForm.display_name} placeholder="e.g. Jane Smith"
+                onChange={(e) => setManualForm({ ...manualForm, display_name: e.target.value })} />
             </div>
             <div style={s.formGroup}>
               <label style={s.label}>Email address *</label>
-              <input style={s.input} type="email" value={form.email} placeholder="jane@gardenerschools.com"
-                onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <input style={s.input} type="email" value={manualForm.email} placeholder="jane@example.com"
+                onChange={(e) => setManualForm({ ...manualForm, email: e.target.value })} />
             </div>
             <div style={s.formGroup}>
               <label style={s.label}>Department</label>
-              <input style={s.input} value={form.department} placeholder="e.g. Finance"
-                onChange={(e) => setForm({ ...form, department: e.target.value })} />
+              <input style={s.input} value={manualForm.department} placeholder="e.g. Finance"
+                onChange={(e) => setManualForm({ ...manualForm, department: e.target.value })} />
             </div>
           </div>
-          <button className="btn" style={s.btnPrimary} disabled={saving} onClick={addApprover}>
-            {saving ? 'Saving…' : 'Add approver →'}
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn" style={s.btnPrimary} disabled={manualSaving} onClick={addManual}>
+              {manualSaving ? 'Saving…' : 'Add approver →'}
+            </button>
+            <button className="btn" style={s.btnSecondary}
+              onClick={() => { setShowManual(false); setManualForm({ display_name: '', email: '', department: '' }); }}>
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
+      {/* ── Current approvers list ── */}
       <div style={s.card}>
         <table style={s.table}>
           <thead>
@@ -510,16 +639,10 @@ function ApproversTab() {
                   </td>
                 </tr>
               ) : (
-                <tr key={a.id} style={{
-                  ...s.row,
-                  ...(idx % 2 === 1 ? s.rowAlt : {}),
-                  opacity: a.is_active ? 1 : 0.55,
-                }}>
+                <tr key={a.id} style={{ ...s.row, ...(idx % 2 === 1 ? s.rowAlt : {}), opacity: a.is_active ? 1 : 0.55 }}>
                   <td style={s.td}><div style={s.name}>{a.display_name}</div></td>
                   <td style={{ ...s.td, ...s.mono }}>{a.email}</td>
-                  <td style={s.td}>
-                    {a.department ?? <span style={s.faint}>—</span>}
-                  </td>
+                  <td style={s.td}>{a.department ?? <span style={s.faint}>—</span>}</td>
                   <td style={s.td}>
                     <span style={a.azure_oid ? s.badgeAzure : s.badgeManual}>
                       {a.azure_oid ? 'Azure AD' : 'Manual'}
@@ -527,10 +650,7 @@ function ApproversTab() {
                   </td>
                   <td style={s.td}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                      <span style={{
-                        ...s.statusDot,
-                        background: a.is_active ? 'var(--success)' : 'var(--ink-faint)',
-                      }} />
+                      <span style={{ ...s.statusDot, background: a.is_active ? 'var(--success)' : 'var(--ink-faint)' }} />
                       <span style={{ fontSize: 12, color: a.is_active ? 'var(--ink)' : 'var(--ink-faint)' }}>
                         {a.is_active ? 'Active' : 'Inactive'}
                       </span>
@@ -539,13 +659,11 @@ function ApproversTab() {
                   <td style={{ ...s.td, textAlign: 'right' }}>
                     <div style={{ display: 'inline-flex', gap: 6 }}>
                       <button className="btn" style={s.btnSecondary} onClick={() => startEdit(a)}>Edit</button>
-                      <button
-                        className="btn"
+                      <button className="btn"
                         style={a.is_active ? s.btnDanger : s.btnSecondary}
                         disabled={removing === a.id}
-                        onClick={() => toggleApprover(a.id, a.is_active)}
-                      >
-                        {removing === a.id ? '…' : a.is_active ? 'Deactivate' : 'Reactivate'}
+                        onClick={() => toggleApprover(a.id, a.is_active)}>
+                        {removing === a.id ? '…' : a.is_active ? 'Remove' : 'Reactivate'}
                       </button>
                     </div>
                   </td>
@@ -556,13 +674,172 @@ function ApproversTab() {
         </table>
         {approvers.length === 0 && (
           <div style={s.empty}>
-            No approvers yet. Click "Import from Microsoft 365" or add one manually.
+            No approvers yet. Search above to find people in your Microsoft 365 directory.
           </div>
         )}
       </div>
     </div>
   );
 }
+
+// Approvers-tab-specific styles
+const ap: Record<string, React.CSSProperties> = {
+  searchPanel: {
+    background: 'rgba(0,180,216,0.04)',
+    border: '1px solid rgba(0,180,216,0.18)',
+    borderRadius: 12,
+    padding: '22px 24px',
+    marginBottom: 18,
+  },
+  searchKicker: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10,
+    color: 'var(--accent)',
+    fontWeight: 600,
+    letterSpacing: '0.15em',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  searchTitle: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 20,
+    fontWeight: 500,
+    color: 'var(--ink)',
+    letterSpacing: '-0.015em',
+    marginBottom: 4,
+  },
+  searchSub: {
+    fontSize: 12.5,
+    color: 'var(--ink-muted)',
+    marginBottom: 16,
+    lineHeight: 1.5,
+  },
+  searchRow: {
+    display: 'flex',
+    gap: 10,
+    alignItems: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    padding: '10px 14px',
+    borderRadius: 8,
+    border: '1px solid var(--line-strong)',
+    fontSize: 13,
+    background: 'var(--paper)',
+    color: 'var(--ink)',
+    outline: 'none',
+  },
+  galError: {
+    marginTop: 14,
+    padding: '12px 14px',
+    background: 'var(--danger-soft)',
+    border: '1px solid rgba(244,63,94,0.25)',
+    borderRadius: 8,
+    fontSize: 12.5,
+    color: 'var(--danger)',
+    lineHeight: 1.5,
+  },
+  galEmpty: {
+    marginTop: 14,
+    padding: '14px 16px',
+    background: 'var(--paper-tint)',
+    border: '1px dashed var(--line-strong)',
+    borderRadius: 8,
+    fontSize: 13,
+    color: 'var(--ink-muted)',
+    fontStyle: 'italic',
+    fontFamily: 'var(--font-display)',
+  },
+  galResults: {
+    marginTop: 14,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  },
+  galResultsLabel: {
+    fontSize: 10.5,
+    fontWeight: 600,
+    color: 'var(--ink-faint)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.16em',
+    marginBottom: 6,
+    fontFamily: 'var(--font-display)',
+  },
+  galRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    padding: '12px 14px',
+    borderRadius: 8,
+    background: 'var(--paper)',
+    border: '1px solid var(--line)',
+    transition: 'background 0.12s var(--ease)',
+  },
+  galAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, rgba(0,180,216,0.25) 0%, rgba(6,214,160,0.2) 100%)',
+    border: '1px solid rgba(0,198,224,0.3)',
+    color: 'var(--accent)',
+    display: 'grid',
+    placeItems: 'center',
+    fontSize: 14,
+    fontWeight: 700,
+    fontFamily: 'var(--font-display)',
+    flexShrink: 0,
+  },
+  galInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  galName: {
+    fontSize: 13.5,
+    fontWeight: 500,
+    color: 'var(--ink)',
+    marginBottom: 2,
+  },
+  galMeta: {
+    display: 'flex',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  galEmail: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 11.5,
+    color: 'var(--ink-muted)',
+  },
+  galDept: {
+    fontSize: 11.5,
+    color: 'var(--ink-faint)',
+  },
+  galAction: {
+    flexShrink: 0,
+  },
+  addBtn: {
+    padding: '6px 14px',
+    fontSize: 12,
+    borderRadius: 6,
+    background: 'rgba(0,180,216,0.12)',
+    color: 'var(--accent)',
+    border: '1px solid rgba(0,198,224,0.3)',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'all 0.15s var(--ease)',
+  },
+  alreadyAdded: {
+    fontSize: 12,
+    color: 'var(--success)',
+    fontWeight: 600,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '6px 12px',
+    background: 'var(--success-soft)',
+    borderRadius: 6,
+    border: '1px solid rgba(16,185,129,0.2)',
+  },
+};
 
 // ─── Alerts Tab ───────────────────────────────────────────────────────────────
 

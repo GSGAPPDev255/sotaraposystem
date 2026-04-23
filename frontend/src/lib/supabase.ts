@@ -21,7 +21,7 @@ export type InvoiceStatus =
   | 'approved_ready_export'
   | 'exported';
 
-export type UserRole = 'finance' | 'approver' | 'auditor' | 'admin';
+export type UserRole = 'finance' | 'approver' | 'auditor' | 'admin' | 'staff';
 export type AuditAction =
   | 'created' | 'ocr_completed' | 'finance_edited' | 'status_changed'
   | 'approval_sent' | 'approved' | 'rejected' | 'forwarded'
@@ -173,6 +173,7 @@ export interface ExpenseFile {
   email_from: string | null;
   email_date: string | null;
   email_subject: string | null;
+  uploaded_by: string | null;
   created_at: string;
 }
 

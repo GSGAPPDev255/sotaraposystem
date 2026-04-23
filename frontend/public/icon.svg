@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#070918"/>
+
+  <!-- Subtle radial glow -->
+  <radialGradient id="glow" cx="50%" cy="45%" r="55%">
+    <stop offset="0%" stop-color="#00B4D8" stop-opacity="0.18"/>
+    <stop offset="100%" stop-color="#070918" stop-opacity="0"/>
+  </radialGradient>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+
+  <!-- Infinity gradient -->
+  <defs>
+    <linearGradient id="ig" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#00B4D8"/>
+      <stop offset="50%"  stop-color="#0EA5E9"/>
+      <stop offset="100%" stop-color="#06D6A0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left lobe of infinity -->
+  <path
+    d="M256 256
+       C256 256 198 152 122 152
+       C66  152 20  196 20  256
+       C20  316 66  360 122 360
+       C198 360 256 256 256 256 Z"
+    stroke="url(#ig)"
+    stroke-width="34"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+    filter="drop-shadow(0 0 18px rgba(0,180,216,0.55))"
+  />
+
+  <!-- Right lobe of infinity -->
+  <path
+    d="M256 256
+       C256 256 314 360 390 360
+       C446 360 492 316 492 256
+       C492 196 446 152 390 152
+       C314 152 256 256 256 256 Z"
+    stroke="url(#ig)"
+    stroke-width="34"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+    filter="drop-shadow(0 0 18px rgba(6,214,160,0.55))"
+  />
+</svg>

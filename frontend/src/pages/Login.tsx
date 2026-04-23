@@ -18,126 +18,247 @@ export default function Login() {
 
   return (
     <div style={styles.page}>
-      {/* Left — editorial marketing panel */}
+      {/* Ambient background orbs */}
+      <div style={styles.orb1} aria-hidden />
+      <div style={styles.orb2} aria-hidden />
+      <div style={styles.orb3} aria-hidden />
+
+      {/* Left — brand + feature showcase */}
       <div style={styles.left}>
         <div style={styles.leftInner}>
-          <div style={styles.brandRow} className="animate-rise">
-            <div style={styles.mark}>S</div>
-            <div style={styles.brandText}>
-              <div style={styles.brandName}>Sotara</div>
-              <div style={styles.brandKicker}>Ledger · Approvals</div>
+
+          {/* Logo lockup */}
+          <div style={styles.logoBlock} className="animate-rise">
+            <SotaraInfinityMark size={52} />
+            <div style={styles.logoText}>
+              <div style={styles.logoWordmark}>SOTARA</div>
+              <div style={styles.logoTagline}>Finance Operations Platform</div>
             </div>
           </div>
 
-          <div style={styles.heroWrap}>
-            <p style={styles.eyebrow} className="animate-rise delay-1">
-              <span style={styles.eyebrowRule} /> Internal Finance Portal
-            </p>
-
-            <h1 style={styles.hero} className="animate-rise delay-2">
-              The quiet ledger,<br />
-              <em style={styles.heroEm}>kept in order.</em>
+          {/* Hero headline */}
+          <div style={styles.heroBlock} className="animate-rise delay-1">
+            <div style={styles.eyebrow}>
+              <span style={styles.eyebrowPip} />
+              Internal Finance Portal
+            </div>
+            <h1 style={styles.heroHeadline}>
+              One platform.<br />
+              <span style={styles.heroGradientText}>Every pound accounted for.</span>
             </h1>
-
-            <p style={styles.lede} className="animate-rise delay-3">
-              A bespoke workflow for reviewing supplier invoices, routing approvals,
-              and exporting to Sage 200 — without the spreadsheet triage.
+            <p style={styles.heroLede}>
+              From supplier invoices to staff expenses — AI-assisted extraction,
+              structured approvals, and clean exports. All in one place.
             </p>
           </div>
 
-          <div style={styles.metricRow} className="animate-rise delay-4">
-            <Metric number="01" label="Intake" text="MS 365 mailbox · Gemini extraction" />
-            <div style={styles.metricDivider} />
-            <Metric number="02" label="Approve" text="Azure AD · audit trail · reminders" />
-            <div style={styles.metricDivider} />
-            <Metric number="03" label="Export" text="Validated Sage 200 CSV" />
+          {/* Two feature pillars */}
+          <div style={styles.pillarsRow} className="animate-rise delay-2">
+            <PillarCard
+              icon={<InvoiceIcon />}
+              accent="#00B4D8"
+              label="Invoices"
+              description="Email intake → Gemini OCR → Finance review → Approver sign-off → Sage export"
+            />
+            <PillarCard
+              icon={<ExpenseIcon />}
+              accent="#06D6A0"
+              label="Expenses"
+              description="Staff upload receipt → AI extraction → Finance coding → Approval → Export"
+            />
           </div>
 
-          <div style={styles.footerLine}>
-            <span style={styles.footerText}>UK · Finance only · Authorised access</span>
-            <span style={styles.footerCode}>MMXXVI</span>
+          {/* Bottom metrics strip */}
+          <div style={styles.metricsStrip} className="animate-rise delay-3">
+            <Stat value="AI" label="OCR extraction" />
+            <div style={styles.statDivider} />
+            <Stat value="AD" label="Azure SSO auth" />
+            <div style={styles.statDivider} />
+            <Stat value="S200" label="Sage 200 export" />
+            <div style={styles.statDivider} />
+            <Stat value="∞" label="Full audit trail" />
           </div>
         </div>
       </div>
 
-      {/* Right — sign-in card */}
+      {/* Right — sign-in glass card */}
       <div style={styles.right}>
-        <div style={styles.card} className="animate-rise delay-2">
-          <div style={styles.cardKicker}>§ Sign in</div>
-          <h2 style={styles.cardTitle}>Welcome back.</h2>
-          <p style={styles.cardBody}>
-            Authenticate with your Microsoft 365 account. Access is
-            automatically restricted to authorised finance and management staff.
-          </p>
+        <div style={styles.glassCard} className="animate-rise delay-2">
+          {/* Prism top border */}
+          <div style={styles.cardPrismBorder} aria-hidden />
 
-          {error && (
-            <div style={styles.error}>
-              <span style={styles.errorLabel}>Error</span>
-              <span>{error}</span>
+          <div style={styles.cardInner}>
+            <div style={styles.cardLogoMobile}>
+              <SotaraInfinityMark size={36} />
+              <span style={styles.cardLogoText}>SOTARA</span>
             </div>
-          )}
 
-          <button
-            className="btn"
-            style={{
-              ...styles.loginBtn,
-              ...(loading ? { opacity: 0.7, cursor: 'wait' } : {}),
-            }}
-            onClick={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span style={styles.spinner} />
-                Redirecting to Microsoft 365…
-              </>
-            ) : (
-              <>
-                <MicrosoftTiles />
-                Continue with Microsoft 365
-              </>
+            <div style={styles.cardKicker}>§ Secure Sign-in</div>
+            <h2 style={styles.cardTitle}>Welcome back.</h2>
+            <p style={styles.cardBody}>
+              Authenticate with your Microsoft 365 account. Access level is
+              automatically determined by your assigned role.
+            </p>
+
+            {error && (
+              <div style={styles.errorBox}>
+                <span style={styles.errorLabel}>Error</span>
+                <span style={styles.errorMsg}>{error}</span>
+              </div>
             )}
-          </button>
 
-          <div style={styles.helpBlock}>
-            <div style={styles.helpLine}>
-              <span style={styles.helpDot} />
-              Finance, Approvers, Admins and Auditors
+            <button
+              style={{
+                ...styles.loginBtn,
+                ...(loading ? { opacity: 0.65, cursor: 'wait' } : {}),
+              }}
+              onClick={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span style={styles.spinner} />
+                  Redirecting to Microsoft…
+                </>
+              ) : (
+                <>
+                  <MicrosoftTiles />
+                  Continue with Microsoft 365
+                </>
+              )}
+            </button>
+
+            {/* Role access info */}
+            <div style={styles.rolesBlock}>
+              <div style={styles.rolesLabel}>Who can sign in</div>
+              <div style={styles.rolesList}>
+                <RoleChip label="Finance" color="#00B4D8" />
+                <RoleChip label="Approver" color="#7B61FF" />
+                <RoleChip label="Staff" color="#06D6A0" />
+                <RoleChip label="Auditor" color="#F59E0B" />
+                <RoleChip label="Admin" color="#F43F5E" />
+              </div>
             </div>
-            <div style={styles.helpLine}>
-              <span style={styles.helpDot} />
+
+            <div style={styles.cardFoot}>
+              <span style={styles.cardFootDot} />
               No password required — SSO only
-            </div>
-            <div style={styles.helpLine}>
-              <span style={styles.helpDot} />
-              Session protected by Azure AD policies
+              <span style={styles.cardFootDot} />
             </div>
           </div>
+        </div>
 
-          <div style={styles.cardFoot}>
-            Trouble signing in?{' '}
-            <span style={styles.cardFootEm}>Contact the finance team.</span>
-          </div>
+        <div style={styles.helpText}>
+          Trouble signing in?{' '}
+          <span style={styles.helpLink}>Contact the finance team.</span>
         </div>
       </div>
     </div>
   );
 }
 
-function Metric({ number, label, text }: { number: string; label: string; text: string }) {
+// ── Sub-components ──────────────────────────────────────────────────────────
+
+function SotaraInfinityMark({ size = 40 }: { size?: number }) {
   return (
-    <div style={metricStyles.wrap}>
-      <div style={metricStyles.number}>{number}</div>
-      <div style={metricStyles.label}>{label}</div>
-      <div style={metricStyles.text}>{text}</div>
+    <svg width={size} height={size * 0.6} viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="login-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#00B4D8" />
+          <stop offset="100%" stopColor="#06D6A0" />
+        </linearGradient>
+        <filter id="login-glow">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      <path
+        d="M50 30 C50 30 38 10 22 10 C10 10 2 18 2 30 C2 42 10 50 22 50 C38 50 50 30 50 30 Z"
+        stroke="url(#login-grad)" strokeWidth="7" strokeLinecap="round" fill="none" filter="url(#login-glow)"
+      />
+      <path
+        d="M50 30 C50 30 62 50 78 50 C90 50 98 42 98 30 C98 18 90 10 78 10 C62 10 50 30 50 30 Z"
+        stroke="url(#login-grad)" strokeWidth="7" strokeLinecap="round" fill="none" filter="url(#login-glow)"
+      />
+    </svg>
+  );
+}
+
+function InvoiceIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14,2 14,8 20,8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10,9 9,9 8,9"/>
+    </svg>
+  );
+}
+
+function ExpenseIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+      <line x1="1" y1="10" x2="23" y2="10"/>
+    </svg>
+  );
+}
+
+function PillarCard({ icon, accent, label, description }: {
+  icon: React.ReactNode;
+  accent: string;
+  label: string;
+  description: string;
+}) {
+  return (
+    <div style={{
+      ...styles.pillar,
+      borderColor: `${accent}22`,
+    }}>
+      <div style={{
+        ...styles.pillarIconWrap,
+        background: `${accent}15`,
+        color: accent,
+        boxShadow: `0 0 16px ${accent}25`,
+      }}>
+        {icon}
+      </div>
+      <div style={{ ...styles.pillarLabel, color: accent }}>{label}</div>
+      <div style={styles.pillarDesc}>{description}</div>
+      <div style={{
+        ...styles.pillarGlow,
+        background: `radial-gradient(ellipse at top left, ${accent}12 0%, transparent 65%)`,
+      }} aria-hidden />
+    </div>
+  );
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div style={styles.stat}>
+      <div style={styles.statValue}>{value}</div>
+      <div style={styles.statLabel}>{label}</div>
+    </div>
+  );
+}
+
+function RoleChip({ label, color }: { label: string; color: string }) {
+  return (
+    <div style={{
+      ...styles.roleChip,
+      background: `${color}12`,
+      borderColor: `${color}30`,
+      color,
+    }}>
+      {label}
     </div>
   );
 }
 
 function MicrosoftTiles() {
-  const size = 14;
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden>
+    <svg width={14} height={14} viewBox="0 0 16 16" aria-hidden>
       <rect x="0" y="0" width="7" height="7" fill="#F25022" />
       <rect x="9" y="0" width="7" height="7" fill="#7FBA00" />
       <rect x="0" y="9" width="7" height="7" fill="#00A4EF" />
@@ -146,264 +267,425 @@ function MicrosoftTiles() {
   );
 }
 
-const metricStyles: Record<string, React.CSSProperties> = {
-  wrap: { flex: 1, minWidth: 0 },
-  number: {
-    fontFamily: 'var(--font-mono)',
-    fontSize: 11,
-    color: 'var(--accent)',
-    fontWeight: 600,
-    letterSpacing: '0.04em',
-    marginBottom: 10,
-  },
-  label: {
-    fontFamily: 'var(--font-display)',
-    fontSize: 17,
-    fontWeight: 500,
-    color: 'var(--ink)',
-    marginBottom: 4,
-    letterSpacing: '-0.01em',
-  },
-  text: {
-    fontSize: 12,
-    color: 'var(--ink-muted)',
-    lineHeight: 1.55,
-  },
-};
+// ── Styles ──────────────────────────────────────────────────────────────────
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: '100vh',
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 1fr)',
+    gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)',
     background: 'var(--paper)',
+    position: 'relative',
+    overflow: 'hidden',
   },
-  /* Left panel — editorial */
+
+  /* Ambient orbs */
+  orb1: {
+    position: 'fixed',
+    top: '-15%', left: '-10%',
+    width: '55vw', height: '55vw',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(0,180,216,0.10) 0%, transparent 65%)',
+    pointerEvents: 'none',
+    zIndex: 0,
+  },
+  orb2: {
+    position: 'fixed',
+    bottom: '-20%', right: '-5%',
+    width: '45vw', height: '45vw',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(6,214,160,0.08) 0%, transparent 65%)',
+    pointerEvents: 'none',
+    zIndex: 0,
+  },
+  orb3: {
+    position: 'fixed',
+    top: '40%', left: '35%',
+    width: '30vw', height: '30vw',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(123,97,255,0.06) 0%, transparent 70%)',
+    pointerEvents: 'none',
+    zIndex: 0,
+  },
+
+  /* Left panel */
   left: {
     position: 'relative',
-    padding: '56px 72px 48px',
+    zIndex: 1,
     display: 'flex',
     flexDirection: 'column',
-    borderRight: '1px solid var(--line)',
-    background:
-      'linear-gradient(180deg, var(--paper-bright) 0%, var(--paper) 100%)',
-    overflow: 'hidden',
+    padding: '52px 64px 48px',
+    borderRight: '1px solid rgba(255,255,255,0.06)',
+    background: 'rgba(255,255,255,0.02)',
+    backdropFilter: 'blur(2px)',
   },
   leftInner: {
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
+    gap: 44,
     maxWidth: 620,
-    gap: 48,
-  },
-  brandRow: { display: 'flex', alignItems: 'center', gap: 14 },
-  mark: {
-    width: 42, height: 42, borderRadius: '50%',
-    background: 'var(--ink)',
-    color: 'var(--paper)',
-    display: 'grid', placeItems: 'center',
-    fontFamily: 'var(--font-display)',
-    fontStyle: 'italic',
-    fontSize: 24,
-    fontWeight: 500,
-    boxShadow: '0 0 0 4px rgba(20, 24, 31, 0.05)',
-  },
-  brandText: { display: 'flex', flexDirection: 'column', lineHeight: 1.1 },
-  brandName: {
-    fontFamily: 'var(--font-display)',
-    fontSize: 22,
-    fontWeight: 500,
-    color: 'var(--ink)',
-    letterSpacing: '-0.015em',
-  },
-  brandKicker: {
-    fontSize: 10, fontWeight: 600,
-    color: 'var(--ink-faint)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.2em',
-    marginTop: 4,
   },
 
-  heroWrap: { display: 'flex', flexDirection: 'column', gap: 24 },
-  eyebrow: {
-    display: 'flex', alignItems: 'center', gap: 14,
-    margin: 0,
-    fontSize: 11, fontWeight: 600,
-    color: 'var(--accent-text)',
+  /* Logo */
+  logoBlock: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+  },
+  logoText: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+  },
+  logoWordmark: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 26,
+    fontWeight: 800,
+    letterSpacing: '0.2em',
+    background: 'linear-gradient(135deg, #00B4D8 0%, #06D6A0 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+    lineHeight: 1,
+  },
+  logoTagline: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: 'rgba(240,244,255,0.35)',
     textTransform: 'uppercase',
     letterSpacing: '0.22em',
+    fontFamily: 'var(--font-display)',
   },
-  eyebrowRule: {
-    width: 32, height: 1, background: 'var(--accent)',
+
+  /* Hero */
+  heroBlock: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 18,
   },
-  hero: {
+  eyebrow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    fontSize: 10,
+    fontWeight: 700,
+    color: 'rgba(0,198,224,0.8)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.25em',
+  },
+  eyebrowPip: {
+    display: 'inline-block',
+    width: 6, height: 6,
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #00B4D8, #06D6A0)',
+    boxShadow: '0 0 8px rgba(0,198,224,0.8)',
+    flexShrink: 0,
+  },
+  heroHeadline: {
     margin: 0,
     fontFamily: 'var(--font-display)',
-    fontSize: 'clamp(38px, 5.4vw, 68px)',
-    lineHeight: 1.02,
+    fontSize: 'clamp(36px, 4.5vw, 62px)',
+    fontWeight: 600,
+    lineHeight: 1.08,
     letterSpacing: '-0.025em',
     color: 'var(--ink)',
-    fontVariationSettings: "'opsz' 144, 'SOFT' 40",
-    fontWeight: 400,
   },
-  heroEm: {
-    fontStyle: 'italic',
-    fontVariationSettings: "'opsz' 144, 'SOFT' 100",
-    color: 'var(--accent)',
+  heroGradientText: {
+    background: 'linear-gradient(135deg, #00B4D8 0%, #06D6A0 50%, #7B61FF 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
   },
-  lede: {
+  heroLede: {
     margin: 0,
-    maxWidth: 480,
-    fontSize: 16,
-    lineHeight: 1.6,
+    fontSize: 15,
+    lineHeight: 1.65,
     color: 'var(--ink-muted)',
+    maxWidth: 500,
   },
 
-  metricRow: {
+  /* Pillar cards */
+  pillarsRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 16,
+  },
+  pillar: {
+    position: 'relative',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid',
+    borderRadius: 14,
+    padding: '22px 20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    backdropFilter: 'blur(12px)',
+    overflow: 'hidden',
+  },
+  pillarIconWrap: {
+    width: 44, height: 44,
+    borderRadius: 10,
+    display: 'grid',
+    placeItems: 'center',
+    flexShrink: 0,
+    marginBottom: 2,
+  },
+  pillarLabel: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 17,
+    fontWeight: 700,
+    letterSpacing: '-0.01em',
+    lineHeight: 1,
+  },
+  pillarDesc: {
+    fontSize: 12,
+    lineHeight: 1.6,
+    color: 'rgba(240,244,255,0.45)',
+  },
+  pillarGlow: {
+    position: 'absolute',
+    inset: 0,
+    pointerEvents: 'none',
+    zIndex: 0,
+  },
+
+  /* Metrics strip */
+  metricsStrip: {
     marginTop: 'auto',
     display: 'flex',
-    gap: 28,
-    paddingTop: 32,
-    borderTop: '1px solid var(--line)',
-  },
-  metricDivider: {
-    width: 1,
-    background: 'var(--line)',
-    alignSelf: 'stretch',
-    marginTop: 4,
-  },
-
-  footerLine: {
-    display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    fontSize: 10,
-    color: 'var(--ink-faint)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.2em',
-    fontWeight: 500,
+    gap: 0,
+    padding: '20px 24px',
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: 12,
+    backdropFilter: 'blur(8px)',
   },
-  footerText: {},
-  footerCode: { fontFamily: 'var(--font-mono)' },
+  stat: {
+    flex: 1,
+    textAlign: 'center',
+    padding: '0 8px',
+  },
+  statValue: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 16,
+    fontWeight: 700,
+    background: 'linear-gradient(135deg, #00B4D8 0%, #06D6A0 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+    letterSpacing: '0.02em',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: 'rgba(240,244,255,0.35)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.18em',
+    fontWeight: 600,
+    fontFamily: 'var(--font-display)',
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    background: 'rgba(255,255,255,0.08)',
+    flexShrink: 0,
+  },
 
-  /* Right panel — sign-in */
+  /* Right panel */
   right: {
+    position: 'relative',
+    zIndex: 1,
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '48px 56px',
-    background: 'var(--paper)',
+    gap: 20,
   },
-  card: {
+  glassCard: {
     width: '100%',
     maxWidth: 420,
-    background: 'var(--paper-bright)',
-    border: '1px solid var(--line)',
-    borderRadius: 14,
-    padding: '38px 38px 32px',
-    boxShadow: '0 1px 0 rgba(20, 24, 31, 0.03), 0 24px 60px -30px rgba(20, 24, 31, 0.25)',
+    background: 'rgba(255,255,255,0.055)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: 20,
+    boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
+    backdropFilter: 'blur(24px) saturate(1.6)',
+    WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
     position: 'relative',
+    overflow: 'hidden',
+  },
+  cardPrismBorder: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: 2,
+    background: 'linear-gradient(90deg, transparent 0%, #00B4D8 30%, #06D6A0 65%, #7B61FF 85%, transparent 100%)',
+    opacity: 0.8,
+  },
+  cardInner: {
+    padding: '36px 36px 30px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 0,
+  },
+  cardLogoMobile: {
+    display: 'none', // shown on mobile via CSS
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 24,
+  },
+  cardLogoText: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 20,
+    fontWeight: 800,
+    letterSpacing: '0.18em',
+    background: 'linear-gradient(135deg, #00B4D8 0%, #06D6A0 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
   },
   cardKicker: {
     fontFamily: 'var(--font-mono)',
-    fontSize: 11,
-    color: 'var(--accent)',
-    fontWeight: 500,
-    letterSpacing: '0.1em',
-    marginBottom: 14,
+    fontSize: 10,
+    color: 'rgba(0,198,224,0.7)',
+    fontWeight: 600,
+    letterSpacing: '0.15em',
+    textTransform: 'uppercase',
+    marginBottom: 10,
   },
   cardTitle: {
-    margin: '0 0 12px',
+    margin: '0 0 10px',
     fontFamily: 'var(--font-display)',
-    fontSize: 34,
-    fontWeight: 400,
+    fontSize: 32,
+    fontWeight: 600,
     color: 'var(--ink)',
     letterSpacing: '-0.02em',
     lineHeight: 1.05,
   },
   cardBody: {
     margin: '0 0 24px',
-    fontSize: 13.5,
-    lineHeight: 1.6,
+    fontSize: 13,
+    lineHeight: 1.65,
     color: 'var(--ink-muted)',
   },
-  error: {
+
+  errorBox: {
     display: 'flex',
-    alignItems: 'baseline',
-    gap: 10,
-    padding: '10px 14px',
-    background: 'var(--danger-soft)',
-    border: '1px solid rgba(160, 49, 53, 0.25)',
-    borderRadius: 6,
+    flexDirection: 'column',
+    gap: 4,
+    padding: '12px 14px',
+    background: 'rgba(244,63,94,0.08)',
+    border: '1px solid rgba(244,63,94,0.25)',
+    borderRadius: 8,
     marginBottom: 16,
-    fontSize: 12.5,
-    color: 'var(--danger)',
   },
   errorLabel: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 9,
     fontWeight: 700,
-    fontSize: 9.5,
-    letterSpacing: '0.18em',
-    textTransform: 'uppercase',
     color: 'var(--danger)',
-    flexShrink: 0,
+    textTransform: 'uppercase',
+    letterSpacing: '0.2em',
   },
+  errorMsg: {
+    fontSize: 12.5,
+    color: 'var(--danger)',
+    lineHeight: 1.5,
+  },
+
   loginBtn: {
     width: '100%',
     padding: '14px 20px',
-    background: 'var(--ink)',
-    color: 'var(--paper)',
-    border: '1px solid var(--ink)',
-    borderRadius: 8,
+    background: 'linear-gradient(135deg, rgba(0,180,216,0.18) 0%, rgba(6,214,160,0.14) 100%)',
+    color: 'var(--ink)',
+    border: '1px solid rgba(0,198,224,0.35)',
+    borderRadius: 10,
     fontSize: 14,
-    fontWeight: 500,
+    fontWeight: 600,
     letterSpacing: '0.01em',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    transition: 'all 0.15s var(--ease)',
+    cursor: 'pointer',
+    transition: 'all 0.18s var(--ease)',
+    boxShadow: '0 4px 16px rgba(0,198,224,0.15), inset 0 1px 0 rgba(255,255,255,0.08)',
+    backdropFilter: 'blur(8px)',
+    fontFamily: 'var(--font-ui)',
+    marginBottom: 22,
   },
   spinner: {
     width: 14, height: 14,
-    border: '2px solid rgba(255,255,255,0.3)',
-    borderTopColor: '#fff',
+    border: '2px solid rgba(240,244,255,0.2)',
+    borderTopColor: 'var(--accent)',
     borderRadius: '50%',
     animation: 'spin 0.8s linear infinite',
   },
-  helpBlock: {
-    marginTop: 24,
+
+  rolesBlock: {
     display: 'flex',
     flexDirection: 'column',
     gap: 10,
     padding: '16px 18px',
-    background: 'var(--paper)',
-    border: '1px dashed var(--line-strong)',
-    borderRadius: 8,
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: 10,
+    marginBottom: 20,
   },
-  helpLine: {
+  rolesLabel: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: 'rgba(240,244,255,0.3)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.2em',
+    fontFamily: 'var(--font-display)',
+    marginBottom: 2,
+  },
+  rolesList: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  roleChip: {
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '3px 10px',
+    borderRadius: 20,
+    border: '1px solid',
+    fontFamily: 'var(--font-display)',
+    letterSpacing: '0.06em',
+  },
+
+  cardFoot: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 10,
-    fontSize: 12,
-    color: 'var(--ink-muted)',
-  },
-  helpDot: {
-    width: 4, height: 4, borderRadius: '50%',
-    background: 'var(--accent)',
-    flexShrink: 0,
-  },
-  cardFoot: {
-    marginTop: 24,
     paddingTop: 18,
-    borderTop: '1px solid var(--line)',
+    borderTop: '1px solid rgba(255,255,255,0.07)',
+    fontSize: 11,
+    color: 'rgba(240,244,255,0.3)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.18em',
+    fontWeight: 600,
+    fontFamily: 'var(--font-display)',
+  },
+  cardFootDot: {
+    display: 'inline-block',
+    width: 3, height: 3,
+    borderRadius: '50%',
+    background: 'rgba(0,198,224,0.5)',
+  },
+
+  helpText: {
     fontSize: 12,
-    color: 'var(--ink-faint)',
+    color: 'rgba(240,244,255,0.3)',
     textAlign: 'center',
   },
-  cardFootEm: {
-    color: 'var(--ink-muted)',
+  helpLink: {
+    color: 'rgba(0,198,224,0.6)',
     fontStyle: 'italic',
     fontFamily: 'var(--font-display)',
-    fontSize: 13,
   },
 };
