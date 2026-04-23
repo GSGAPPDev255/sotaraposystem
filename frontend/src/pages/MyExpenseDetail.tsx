@@ -300,7 +300,7 @@ export default function MyExpenseDetail() {
           <div style={styles.summaryBox}>
             {[
               { key: 'Amount',   val: fmtMoney(expense.amount, expense.currency) },
-              { key: 'Category', val: EXPENSE_CATEGORY_LABELS[expense.category] ?? expense.category },
+              { key: 'Category', val: EXPENSE_CATEGORY_LABELS[expense.category as ExpenseCategory] ?? expense.category },
               ...(expense.merchant_name ? [{ key: 'Merchant', val: expense.merchant_name }] : []),
               ...(expense.receipt_date  ? [{ key: 'Date',     val: fmtDate(expense.receipt_date) }] : []),
             ].map(row => (
