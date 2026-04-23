@@ -256,6 +256,8 @@ function AuthCallback({ onProfile }: { onProfile: (p: Profile | null) => void })
 
   useEffect(() => {
     let cancelled = false;
+    let subscription: ReturnType<typeof supabase.auth.onAuthStateChange>['data']['subscription'] | null = null;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
 
     function handleSession(userId: string) {
       supabase
@@ -274,46 +276,51 @@ function AuthCallback({ onProfile }: { onProfile: (p: Profile | null) => void })
           },
           () => {
             if (cancelled) return;
-            // Profile fetch failed — still navigate so App can retry
             onProfile(null);
             navigate('/login', { replace: true });
           },
         );
     }
 
-    // First try: check if session is already available (fast path on page refresh)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return;
+
       if (session?.user) {
         handleSession(session.user.id);
         return;
       }
-      // Session not ready yet (PKCE exchange in progress) — wait for SIGNED_IN event
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+
+      // Session not ready — wait for SIGNED_IN event (PKCE code exchange in progress)
+      const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(
         (event, s) => {
           if (cancelled) return;
           if (event === 'SIGNED_IN' && s?.user) {
-            subscription.unsubscribe();
+            if (timeout) clearTimeout(timeout);
+            sub.unsubscribe();
             handleSession(s.user.id);
           } else if (event === 'SIGNED_OUT') {
-            subscription.unsubscribe();
+            if (timeout) clearTimeout(timeout);
+            sub.unsubscribe();
             navigate('/login', { replace: true });
           }
         },
       );
+      subscription = sub;
 
-      // Safety timeout — if nothing happens in 15s, go back to login
-      const timeout = setTimeout(() => {
+      // Safety timeout in case code exchange fails
+      timeout = setTimeout(() => {
         if (!cancelled) {
-          subscription.unsubscribe();
+          sub.unsubscribe();
           navigate('/login', { replace: true });
         }
       }, 15000);
-
-      return () => { clearTimeout(timeout); subscription.unsubscribe(); };
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (subscription) subscription.unsubscribe();
+      if (timeout) clearTimeout(timeout);
+    };
   }, [navigate, onProfile]);
 
   return <div style={styles.center}><div style={styles.spinner} /></div>;
