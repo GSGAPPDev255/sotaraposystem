@@ -2,14 +2,17 @@
  * admin-actions: Admin-only operations that require the service role key.
  *
  * Actions:
- *   invite_user  — Creates a Supabase auth user, sends invite email, pre-creates profile
- *   update_user  — Updates a profile's display_name / role
+ *   invite_user   — Creates a Supabase auth user, sends invite email, pre-creates profile
+ *   update_user   — Updates a profile's display_name / role
+ *   search_gal    — Searches Azure AD for users by display name or email
+ *   add_approver  — Adds or reactivates an approver from Azure AD
  *
  * All actions require the caller to be an authenticated admin.
  */
 
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
 import { supabaseAdmin } from '../_shared/supabase-client.ts';
+import { searchUsers, type AzureAdUser } from '../_shared/graph-client.ts';
 
 Deno.serve(async (req) => {
   const corsRes = handleCors(req);
@@ -123,6 +126,48 @@ Deno.serve(async (req) => {
 
       if (error) throw new Error(error.message);
       return json({ success: true });
+    }
+
+    // ── Search GAL ─────────────────────────────────────────────────────────
+    if (action === 'search_gal') {
+      const query = String(body.query ?? '').trim();
+
+      if (!query || query.length < 2) {
+        return json({ error: 'query must be at least 2 characters' }, 400);
+      }
+
+      const users = await searchUsers(query);
+      return json({ users });
+    }
+
+    // ── Add Approver ───────────────────────────────────────────────────────
+    if (action === 'add_approver') {
+      const azure_oid    = String(body.azure_oid ?? '').trim();
+      const email        = String(body.email ?? '').trim().toLowerCase();
+      const display_name = String(body.display_name ?? '').trim();
+      const department   = String(body.department ?? '').trim();
+
+      if (!azure_oid || !email || !display_name) {
+        return json({ error: 'azure_oid, email, and display_name are required' }, 400);
+      }
+
+      // Upsert approver — allows reactivation if previously deactivated
+      const { data: approver, error: upsertError } = await supabaseAdmin
+        .from('approvers')
+        .upsert({
+          azure_oid,
+          email,
+          display_name,
+          department,
+          is_active: true,
+          synced_at: new Date().toISOString(),
+        }, { onConflict: 'azure_oid' });
+
+      if (upsertError) {
+        throw new Error(`Failed to add approver: ${upsertError.message}`);
+      }
+
+      return json({ success: true, approver });
     }
 
     return json({ error: `Unknown action: ${action}` }, 400);

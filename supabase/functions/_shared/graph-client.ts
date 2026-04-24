@@ -77,6 +77,38 @@ export async function markMessageRead(mailbox: string, messageId: string): Promi
   });
 }
 
+/** Search for users in Azure AD by display name or email. */
+export async function searchUsers(query: string): Promise<AzureAdUser[]> {
+  const token = await getGraphToken();
+
+  // Use $search for display name and mail matching (requires ConsistencyLevel: eventual)
+  const encodedQuery = encodeURIComponent(query);
+  const res = await fetch(
+    `${GRAPH_BASE}/users?$search="displayName:${encodedQuery}" OR "mail:${encodedQuery}"&$select=id,displayName,mail,department,jobTitle,accountEnabled&$top=15&$filter=accountEnabled eq true`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'ConsistencyLevel': 'eventual',  // Required for $search
+      },
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Graph search failed: ${res.status} ${body}`);
+  }
+
+  const data = await res.json();
+  return (data.value ?? []).map((u: any) => ({
+    azure_oid: u.id,
+    display_name: u.displayName,
+    email: u.mail,
+    department: u.department || '',
+    job_title: u.jobTitle || '',
+  }));
+}
+
 /** Send an email from the finance mailbox. */
 export async function sendMail(from: string, message: GraphSendMailPayload): Promise<void> {
   const token = await getGraphToken();
@@ -121,4 +153,12 @@ export interface GraphSendMailPayload {
     ccRecipients?: { emailAddress: { address: string } }[];
   };
   saveToSentItems: boolean;
+}
+
+export interface AzureAdUser {
+  azure_oid: string;
+  display_name: string;
+  email: string;
+  department?: string;
+  job_title?: string;
 }
