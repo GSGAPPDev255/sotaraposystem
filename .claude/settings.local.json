@@ -35,7 +35,8 @@
       "Bash(supabase secrets *)",
       "Bash(npm run *)",
       "mcp__5c3a39e0-cc4f-462e-88a9-6dcb6d73bd7e__get_project",
-      "Bash(import\")"
+      "Bash(import\")",
+      "Bash(gh workflow *)"
     ]
   }
 }

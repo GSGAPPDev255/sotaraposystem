@@ -982,7 +982,6 @@ const FUNCTIONS: FnStatus[] = [
   { name: 'send-approval',      label: 'Send approval',       schedule: 'On-demand' },
   { name: 'process-approval',   label: 'Process approval',    schedule: 'On-demand' },
   { name: 'generate-csv',       label: 'Generate CSV',        schedule: 'On-demand' },
-  { name: 'sync-approvers',     label: 'Import M365 approvers', schedule: 'Manual' },
   { name: 'admin-actions',      label: 'Admin actions',       schedule: 'On-demand' },
 ];
 
