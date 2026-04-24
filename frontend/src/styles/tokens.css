@@ -1,33 +1,33 @@
 /* ─────────────────────────────────────────────────────────────────────────────
    Sotara · Design System
-   Glassmorphism / prism aesthetic — dark navy, glass panels, cyan-teal brand.
+   Light mode by default — dark mode via [data-theme="dark"] on <html>.
    ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* ── Base surfaces ───────────────────────────────────────────────── */
-  --paper:         #07091A;   /* deep navy page background */
-  --paper-bright:  rgba(255, 255, 255, 0.055);  /* glass card surface */
-  --paper-tint:    rgba(255, 255, 255, 0.035);  /* subtle hover/stripe */
-  --paper-solid:   #0D1228;   /* solid fallback for opaque needs */
+  /* ── Base surfaces — LIGHT ───────────────────────────────────────── */
+  --paper:         #F0F4FF;   /* soft blue-white page background */
+  --paper-bright:  rgba(255, 255, 255, 0.95);
+  --paper-tint:    rgba(0, 0, 0, 0.025);
+  --paper-solid:   #FFFFFF;
 
-  /* ── Text on dark ────────────────────────────────────────────────── */
-  --ink:           #F0F4FF;   /* near-white primary text */
-  --ink-soft:      rgba(240, 244, 255, 0.80);
-  --ink-muted:     rgba(240, 244, 255, 0.55);
-  --ink-faint:     rgba(240, 244, 255, 0.35);
+  /* ── Text on light ───────────────────────────────────────────────── */
+  --ink:           #0D1228;
+  --ink-soft:      rgba(13, 18, 40, 0.80);
+  --ink-muted:     rgba(13, 18, 40, 0.55);
+  --ink-faint:     rgba(13, 18, 40, 0.32);
 
-  /* ── Glass borders ───────────────────────────────────────────────── */
-  --line:          rgba(255, 255, 255, 0.09);
-  --line-strong:   rgba(255, 255, 255, 0.16);
+  /* ── Borders ─────────────────────────────────────────────────────── */
+  --line:          rgba(0, 0, 0, 0.08);
+  --line-strong:   rgba(0, 0, 0, 0.14);
 
-  /* ── Brand accent — Sotara cyan / teal (from logo) ──────────────── */
-  --accent:        #00C6E0;
-  --accent-dark:   #009BB3;
-  --accent-soft:   rgba(0, 198, 224, 0.14);
-  --accent-text:   #7FE8F5;
-  --accent-2:      #06D6A0;   /* teal — second brand colour */
+  /* ── Brand accent — Sotara cyan / teal ───────────────────────────── */
+  --accent:        #00A8C8;   /* slightly deeper for light bg contrast */
+  --accent-dark:   #007EA0;
+  --accent-soft:   rgba(0, 168, 200, 0.12);
+  --accent-text:   #007EA0;
+  --accent-2:      #05B88A;
 
-  /* ── Brand gradient (matches logo exactly) ───────────────────────── */
+  /* ── Brand gradient (matches logo) ───────────────────────────────── */
   --brand-gradient: linear-gradient(135deg, #00B4D8 0%, #06D6A0 100%);
   --prism-gradient: linear-gradient(135deg,
     #00B4D8 0%,
@@ -36,15 +36,15 @@
     #00B4D8 100%
   );
 
-  /* ── Status colours — vivid on dark ─────────────────────────────── */
-  --success:       #10B981;
-  --success-soft:  rgba(16, 185, 129, 0.14);
-  --warning:       #F59E0B;
-  --warning-soft:  rgba(245, 158, 11, 0.14);
-  --danger:        #F43F5E;
-  --danger-soft:   rgba(244, 63, 94, 0.14);
-  --info:          #3B82F6;
-  --info-soft:     rgba(59, 130, 246, 0.14);
+  /* ── Status colours — adjusted for light backgrounds ─────────────── */
+  --success:       #059669;
+  --success-soft:  rgba(5, 150, 105, 0.10);
+  --warning:       #D97706;
+  --warning-soft:  rgba(217, 119, 6, 0.10);
+  --danger:        #DC2626;
+  --danger-soft:   rgba(220, 38, 38, 0.10);
+  --info:          #2563EB;
+  --info-soft:     rgba(37, 99, 235, 0.10);
 
   /* ── Typography ─────────────────────────────────────────────────── */
   --font-display:  'Syne', system-ui, sans-serif;
@@ -56,18 +56,125 @@
   --radius:    10px;
   --radius-lg: 16px;
 
-  /* ── Glass shadows ───────────────────────────────────────────────── */
-  --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.06);
-  --shadow:     0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.08);
-  --shadow-lg:  0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.06);
-  --glow:       0 0 20px rgba(0, 198, 224, 0.25);
-  --glow-lg:    0 0 40px rgba(0, 198, 224, 0.3), 0 0 80px rgba(6, 214, 160, 0.15);
+  /* ── Shadows — crisp on white ────────────────────────────────────── */
+  --shadow-sm:  0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  --shadow:     0 4px 16px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.05);
+  --shadow-lg:  0 12px 40px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06);
+  --glow:       0 0 20px rgba(0, 168, 200, 0.18);
+  --glow-lg:    0 0 40px rgba(0, 168, 200, 0.22), 0 0 80px rgba(6, 214, 160, 0.10);
 
-  /* ── Glass blur ──────────────────────────────────────────────────── */
-  --glass:      rgba(255, 255, 255, 0.055);
+  /* ── Glass (white frosted panels) ────────────────────────────────── */
+  --glass:        rgba(255, 255, 255, 0.80);
+  --glass-border: rgba(0, 0, 0, 0.07);
+
+  /* ── Component-specific surfaces ────────────────────────────────── */
+  --nav-bg:              rgba(255, 255, 255, 0.92);
+  --nav-border:          rgba(0, 0, 0, 0.07);
+  --nav-text:            rgba(13, 18, 40, 0.50);
+  --nav-text-active:     rgba(13, 18, 40, 0.95);
+  --nav-icon:            rgba(13, 18, 40, 0.30);
+  --nav-number:          rgba(13, 18, 40, 0.22);
+  --nav-footer-text:     rgba(13, 18, 40, 0.35);
+  --nav-footer-copy:     rgba(13, 18, 40, 0.18);
+  --nav-footer-border:   rgba(0, 0, 0, 0.06);
+  --nav-brand-sub:       rgba(13, 18, 40, 0.30);
+  --nav-close-bg:        rgba(0, 0, 0, 0.04);
+  --nav-close-border:    rgba(0, 0, 0, 0.10);
+  --nav-close-color:     rgba(13, 18, 40, 0.50);
+
+  --topbar-bg:           rgba(240, 244, 255, 0.90);
+  --topbar-border:       rgba(0, 0, 0, 0.06);
+  --topbar-date-label:   rgba(13, 18, 40, 0.30);
+  --topbar-date-value:   rgba(13, 18, 40, 0.60);
+  --topbar-user-name:    rgba(13, 18, 40, 0.90);
+  --topbar-user-role:    rgba(13, 18, 40, 0.35);
+  --topbar-btn-bg:       rgba(0, 0, 0, 0.04);
+  --topbar-btn-border:   rgba(0, 0, 0, 0.09);
+  --topbar-btn-color:    rgba(13, 18, 40, 0.50);
+  --topbar-hamburger-line: rgba(13, 18, 40, 0.65);
+
+  --input-bg:            rgba(0, 0, 0, 0.04);
+  --input-bg-focus:      rgba(0, 0, 0, 0.06);
+  --input-bg-disabled:   rgba(0, 0, 0, 0.02);
+  --btn-primary-bg:      rgba(0, 0, 0, 0.05);
+  --btn-primary-hover:   rgba(0, 0, 0, 0.08);
+  --scrollbar-thumb:     rgba(0, 0, 0, 0.14);
+  --scrollbar-hover:     rgba(0, 168, 200, 0.35);
+
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* ── Dark mode overrides ──────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --paper:         #07091A;
+  --paper-bright:  rgba(255, 255, 255, 0.055);
+  --paper-tint:    rgba(255, 255, 255, 0.035);
+  --paper-solid:   #0D1228;
+
+  --ink:           #F0F4FF;
+  --ink-soft:      rgba(240, 244, 255, 0.80);
+  --ink-muted:     rgba(240, 244, 255, 0.55);
+  --ink-faint:     rgba(240, 244, 255, 0.35);
+
+  --line:          rgba(255, 255, 255, 0.09);
+  --line-strong:   rgba(255, 255, 255, 0.16);
+
+  --accent:        #00C6E0;
+  --accent-dark:   #009BB3;
+  --accent-soft:   rgba(0, 198, 224, 0.14);
+  --accent-text:   #7FE8F5;
+  --accent-2:      #06D6A0;
+
+  --success:       #10B981;
+  --success-soft:  rgba(16, 185, 129, 0.14);
+  --warning:       #F59E0B;
+  --warning-soft:  rgba(245, 158, 11, 0.14);
+  --danger:        #F43F5E;
+  --danger-soft:   rgba(244, 63, 94, 0.14);
+  --info:          #3B82F6;
+  --info-soft:     rgba(59, 130, 246, 0.14);
+
+  --shadow-sm:  0 2px 8px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.06);
+  --shadow:     0 8px 24px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.08);
+  --shadow-lg:  0 16px 48px rgba(0,0,0,0.50), 0 0 0 1px rgba(255,255,255,0.06);
+  --glow:       0 0 20px rgba(0, 198, 224, 0.25);
+  --glow-lg:    0 0 40px rgba(0, 198, 224, 0.30), 0 0 80px rgba(6, 214, 160, 0.15);
+
+  --glass:        rgba(255, 255, 255, 0.055);
   --glass-border: rgba(255, 255, 255, 0.10);
 
-  --ease:       cubic-bezier(0.22, 0.61, 0.36, 1);
+  --nav-bg:              rgba(5, 7, 20, 0.90);
+  --nav-border:          rgba(255, 255, 255, 0.06);
+  --nav-text:            rgba(240, 244, 255, 0.50);
+  --nav-text-active:     rgba(240, 244, 255, 0.95);
+  --nav-icon:            rgba(240, 244, 255, 0.35);
+  --nav-number:          rgba(240, 244, 255, 0.22);
+  --nav-footer-text:     rgba(240, 244, 255, 0.35);
+  --nav-footer-copy:     rgba(240, 244, 255, 0.18);
+  --nav-footer-border:   rgba(255, 255, 255, 0.05);
+  --nav-brand-sub:       rgba(240, 244, 255, 0.28);
+  --nav-close-bg:        rgba(255, 255, 255, 0.07);
+  --nav-close-border:    rgba(255, 255, 255, 0.12);
+  --nav-close-color:     rgba(240, 244, 255, 0.60);
+
+  --topbar-bg:           rgba(7, 9, 26, 0.70);
+  --topbar-border:       rgba(255, 255, 255, 0.07);
+  --topbar-date-label:   rgba(240, 244, 255, 0.30);
+  --topbar-date-value:   rgba(240, 244, 255, 0.65);
+  --topbar-user-name:    rgba(240, 244, 255, 0.90);
+  --topbar-user-role:    rgba(240, 244, 255, 0.35);
+  --topbar-btn-bg:       rgba(255, 255, 255, 0.05);
+  --topbar-btn-border:   rgba(255, 255, 255, 0.10);
+  --topbar-btn-color:    rgba(240, 244, 255, 0.50);
+  --topbar-hamburger-line: rgba(240, 244, 255, 0.70);
+
+  --input-bg:            rgba(255, 255, 255, 0.06);
+  --input-bg-focus:      rgba(255, 255, 255, 0.09);
+  --input-bg-disabled:   rgba(255, 255, 255, 0.03);
+  --btn-primary-bg:      rgba(255, 255, 255, 0.10);
+  --btn-primary-hover:   rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb:     rgba(255, 255, 255, 0.15);
+  --scrollbar-hover:     rgba(0, 198, 224, 0.40);
 }
 
 /* ── Base reset & document ─────────────────────────────────────────── */
@@ -84,8 +191,16 @@ body {
   background: var(--paper);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background 0.25s var(--ease), color 0.25s var(--ease);
 
-  /* Layered prism mesh background */
+  /* Light mode — subtle prism mesh */
+  background-image:
+    radial-gradient(ellipse 80% 60% at 10% 0%,   rgba(0, 168, 200, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 100%,  rgba(6, 214, 160, 0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 50%,   rgba(123, 97, 255, 0.03) 0%, transparent 70%);
+}
+
+[data-theme="dark"] body {
   background-image:
     radial-gradient(ellipse 80% 60% at 10% 0%,   rgba(0, 180, 216, 0.12) 0%, transparent 60%),
     radial-gradient(ellipse 60% 50% at 90% 100%,  rgba(6, 214, 160, 0.09) 0%, transparent 55%),
@@ -120,7 +235,7 @@ input, textarea, select, button {
 
 input[type='text'], input[type='number'], input[type='date'],
 input[type='email'], textarea, select {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--input-bg);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 8px 11px;
@@ -128,23 +243,22 @@ input[type='email'], textarea, select {
   color: var(--ink);
   transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.15s var(--ease);
   outline: none;
-  backdrop-filter: blur(8px);
 }
 
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0, 198, 224, 0.18), var(--glow);
-  background: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--glow);
+  background: var(--input-bg-focus);
 }
 
 input:disabled, textarea:disabled, select:disabled {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--input-bg-disabled);
   color: var(--ink-faint);
   cursor: not-allowed;
 }
 
 input:read-only:not(:disabled) {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--input-bg-disabled);
   color: var(--ink-muted);
 }
 
@@ -193,15 +307,15 @@ button:focus-visible {
   overflow: hidden;
 }
 
-/* Primary — glass dark */
+/* Primary — glass */
 .btn-primary {
-  background: rgba(255, 255, 255, 0.10);
+  background: var(--btn-primary-bg);
   color: var(--ink);
   border-color: var(--line-strong);
   backdrop-filter: blur(12px);
 }
 .btn-primary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--btn-primary-hover);
   border-color: var(--accent);
   box-shadow: var(--glow);
 }
@@ -213,10 +327,10 @@ button:focus-visible {
   color: #07091A;
   font-weight: 600;
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(0, 198, 224, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 180, 216, 0.28);
 }
 .btn-accent:hover:not(:disabled) {
-  box-shadow: 0 6px 24px rgba(0, 198, 224, 0.45), var(--glow);
+  box-shadow: 0 6px 24px rgba(0, 180, 216, 0.40), var(--glow);
   transform: translateY(-1px);
 }
 
@@ -257,6 +371,17 @@ button:focus-visible {
   -webkit-backdrop-filter: blur(20px) saturate(1.5);
 }
 
+/* ── Theme transition ──────────────────────────────────────────────── */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 0.20s;
+  transition-timing-function: var(--ease);
+}
+/* Don't transition transforms or dimensions */
+button, a, input, select, textarea {
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity;
+}
+
 /* ── Animated entry ────────────────────────────────────────────────── */
 @keyframes fade-rise {
   from { opacity: 0; transform: translateY(10px); }
@@ -292,17 +417,24 @@ button:focus-visible {
   100% { box-shadow: 0 0 0 0   rgba(0, 198, 224, 0); }
 }
 
+/* Theme toggle rotation */
+@keyframes theme-spin {
+  from { transform: rotate(-30deg) scale(0.8); opacity: 0; }
+  to   { transform: rotate(0deg) scale(1);    opacity: 1; }
+}
+
 /* ── Scrollbar (WebKit) ────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.15);
+  background: var(--scrollbar-thumb);
   border-radius: 10px;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,198,224,0.4); }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
 
 /* ── Selection ─────────────────────────────────────────────────────── */
-::selection { background: rgba(0, 198, 224, 0.35); color: #fff; }
+::selection { background: rgba(0, 168, 200, 0.25); color: var(--ink); }
+[data-theme="dark"] ::selection { background: rgba(0, 198, 224, 0.35); color: #fff; }
 
 /* ── Status dot helper ─────────────────────────────────────────────── */
 .status-dot {

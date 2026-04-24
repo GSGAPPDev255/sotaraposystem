@@ -56,7 +56,7 @@ const NAV_ITEMS: NavItem[] = [
 const SECTION_META: Record<string, { label: string; accent: string }> = {
   invoices: { label: 'Invoices',  accent: '#00B4D8' },
   expenses: { label: 'Expenses',  accent: '#06D6A0' },
-  system:   { label: 'System',    accent: 'rgba(240,244,255,0.3)' },
+  system:   { label: 'System',    accent: 'var(--ink-faint)' },
 };
 
 // ── Icon components ──────────────────────────────────────────────────────────
@@ -260,15 +260,15 @@ export default function Sidebar({ role, isOpen, onClose }: SidebarProps) {
 const styles: Record<string, React.CSSProperties> = {
   sidebar: {
     width: 230,
-    background: 'rgba(5, 7, 20, 0.90)',
+    background: 'var(--nav-bg)',
     backdropFilter: 'blur(28px) saturate(1.8)',
     WebkitBackdropFilter: 'blur(28px) saturate(1.8)',
-    color: 'rgba(240, 244, 255, 0.85)',
+    color: 'var(--ink-soft)',
     display: 'flex',
     flexDirection: 'column',
     flexShrink: 0,
     position: 'relative',
-    borderRight: '1px solid rgba(255,255,255,0.06)',
+    borderRight: '1px solid var(--nav-border)',
     overflow: 'hidden',
   },
   glowOrb: {
@@ -291,10 +291,10 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'none',
     position: 'absolute',
     top: 14, right: 14,
-    background: 'rgba(255,255,255,0.07)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'var(--nav-close-bg)',
+    border: '1px solid var(--nav-close-border)',
     borderRadius: 8,
-    color: 'rgba(240,244,255,0.6)',
+    color: 'var(--nav-close-color)',
     width: 32, height: 32,
     alignItems: 'center',
     justifyContent: 'center',
@@ -324,7 +324,7 @@ const styles: Record<string, React.CSSProperties> = {
   brandSub: {
     fontSize: 9,
     fontWeight: 600,
-    color: 'rgba(240,244,255,0.28)',
+    color: 'var(--nav-brand-sub)',
     textTransform: 'uppercase',
     letterSpacing: '0.2em',
     fontFamily: 'var(--font-display)',
@@ -377,7 +377,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: 10,
     padding: '10px 14px',
-    color: 'rgba(240,244,255,0.50)',
+    color: 'var(--nav-text)',
     textDecoration: 'none',
     fontSize: 13,
     fontWeight: 400,
@@ -386,9 +386,9 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: '0.01em',
   },
   navItemActive: {
-    color: 'rgba(240,244,255,0.95)',
-    background: 'rgba(0, 198, 224, 0.08)',
-    border: '1px solid rgba(0,198,224,0.14)',
+    color: 'var(--nav-text-active)',
+    background: 'var(--accent-soft)',
+    border: '1px solid rgba(0,180,216,0.14)',
   },
   navIcon: {
     display: 'flex',
@@ -396,7 +396,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     width: 20,
     flexShrink: 0,
-    color: 'rgba(240,244,255,0.35)',
+    color: 'var(--nav-icon)',
     transition: 'color 0.18s var(--ease)',
   },
   navLabel: {
@@ -406,7 +406,7 @@ const styles: Record<string, React.CSSProperties> = {
   navNumber: {
     fontFamily: 'var(--font-mono)',
     fontSize: 9,
-    color: 'rgba(240,244,255,0.22)',
+    color: 'var(--nav-number)',
     fontWeight: 500,
     letterSpacing: '0.06em',
   },
@@ -419,7 +419,7 @@ const styles: Record<string, React.CSSProperties> = {
   footer: {
     position: 'relative',
     zIndex: 1,
-    borderTop: '1px solid rgba(255,255,255,0.05)',
+    borderTop: '1px solid var(--nav-footer-border)',
     overflow: 'hidden',
   },
   footerPrism: {
@@ -445,7 +445,7 @@ const styles: Record<string, React.CSSProperties> = {
   footerPlatform: {
     fontSize: 10,
     fontWeight: 600,
-    color: 'rgba(240,244,255,0.35)',
+    color: 'var(--nav-footer-text)',
     textTransform: 'uppercase',
     letterSpacing: '0.18em',
     fontFamily: 'var(--font-display)',
@@ -455,7 +455,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   footerCopyright: {
     fontSize: 9,
-    color: 'rgba(240,244,255,0.18)',
+    color: 'var(--nav-footer-copy)',
     letterSpacing: '0.12em',
     fontFamily: 'var(--font-display)',
     textTransform: 'uppercase',

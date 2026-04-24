@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { Profile } from '../../lib/supabase';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import { useTheme } from '../../hooks/useTheme';
 
 interface AppShellProps {
   profile: Profile;
@@ -13,6 +14,8 @@ export default function AppShell({ profile, children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const openSidebar  = useCallback(() => setSidebarOpen(true),  []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+
+  const { isDark, toggleTheme } = useTheme();
 
   return (
     <div style={styles.shell}>
@@ -33,7 +36,12 @@ export default function AppShell({ profile, children }: AppShellProps) {
       <Sidebar role={profile.role} isOpen={sidebarOpen} onClose={closeSidebar} />
 
       <div className="app-shell-main" style={styles.main}>
-        <TopBar profile={profile} onMenuClick={openSidebar} />
+        <TopBar
+          profile={profile}
+          onMenuClick={openSidebar}
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
+        />
         <main style={styles.content}>
           <div className="app-content-inner" style={styles.inner}>
             {children}
@@ -61,17 +69,17 @@ const styles: Record<string, React.CSSProperties> = {
   orbTL: {
     top: -200, left: -100,
     width: 600, height: 600,
-    background: 'radial-gradient(circle, rgba(0,180,216,0.07) 0%, transparent 65%)',
+    background: 'radial-gradient(circle, rgba(0,168,200,0.07) 0%, transparent 65%)',
   },
   orbBR: {
     bottom: -200, right: -100,
     width: 500, height: 500,
-    background: 'radial-gradient(circle, rgba(6,214,160,0.06) 0%, transparent 65%)',
+    background: 'radial-gradient(circle, rgba(6,214,160,0.05) 0%, transparent 65%)',
   },
   overlay: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(0,0,0,0.55)',
+    background: 'rgba(0,0,0,0.45)',
     backdropFilter: 'blur(4px)',
     zIndex: 200,
   },
