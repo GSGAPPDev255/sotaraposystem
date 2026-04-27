@@ -363,7 +363,6 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: 'uppercase',
     letterSpacing: '0.22em',
     fontFamily: 'var(--font-display)',
-    opacity: 0.7,
   },
   sectionDot: {
     width: 5, height: 5,
@@ -449,7 +448,7 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: 'uppercase',
     letterSpacing: '0.18em',
     fontFamily: 'var(--font-display)',
-    whiteSpace: 'nowrap',
+    whiteSpace: 'nowrap' as const,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },

@@ -162,7 +162,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 9,
     fontWeight: 700,
     color: 'var(--topbar-date-label)',
-    textTransform: 'uppercase' as const,
+    textTransform: 'uppercase',
     letterSpacing: '0.22em',
     fontFamily: 'var(--font-display)',
   },
@@ -216,7 +216,7 @@ const styles: Record<string, React.CSSProperties> = {
   userRole: {
     fontSize: 9,
     color: 'var(--topbar-user-role)',
-    textTransform: 'uppercase' as const,
+    textTransform: 'uppercase',
     letterSpacing: '0.18em',
     marginTop: 2,
     fontWeight: 600,
